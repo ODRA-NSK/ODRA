@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dept Wise – ODRA</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -23,21 +23,15 @@
         button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
         
-        /* FORCE HORIZONTAL LAYOUT FOR DEPARTMENT BUTTONS */
+        /* SIMPLE HORIZONTAL LAYOUT - WORKS ALWAYS */
         .dept-selector {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            white-space: nowrap !important;
-            gap: 10px;
+            white-space: nowrap;
+            overflow-x: auto;
             padding-bottom: 10px;
             margin-bottom: 10px;
-            -webkit-overflow-scrolling: touch;
-            width: 100%;
         }
         .dept-btn {
-            flex: 0 0 auto !important;    /* do not shrink, do not grow */
+            display: inline-block;
             background: #e9ecef;
             color: #2c3e50;
             border: none;
@@ -45,6 +39,7 @@
             border-radius: 30px;
             cursor: pointer;
             font-weight: bold;
+            margin-right: 10px;
             transition: all 0.2s;
         }
         .dept-btn.active {
@@ -56,27 +51,22 @@
             background: #d4d9e0;
         }
         
-        /* Force horizontal for subtab buttons as well */
+        /* Subtabs also horizontal */
         .subtab-selector {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            white-space: nowrap !important;
-            gap: 10px;
+            white-space: nowrap;
+            overflow-x: auto;
             padding-bottom: 10px;
             margin-top: 15px;
-            -webkit-overflow-scrolling: touch;
-            width: 100%;
         }
         .subtab-btn {
-            flex: 0 0 auto !important;
+            display: inline-block;
             background: #e9ecef;
             color: #2c3e50;
             border: none;
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
+            margin-right: 10px;
             transition: all 0.2s;
         }
         .subtab-btn.active {
