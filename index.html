@@ -21,14 +21,14 @@
             align-items: center;
             justify-content: space-between;
             background-color: #f8f9fa;
-            padding: 10px 20px;
+            padding: 15px 30px;
             border-bottom: 2px solid #dee2e6;
             flex-wrap: wrap;
         }
 
-        /* Left: Logo */
+        /* Left: Logo - BIGGER */
         .logo img {
-            height: 60px;      /* adjust size as needed */
+            height: 100px;      /* increased from 60px to 100px */
             width: auto;
             display: block;
         }
@@ -40,20 +40,20 @@
         }
 
         .company-name {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: bold;
             color: #2c3e50;
         }
 
         .subtitle {
-            font-size: 1rem;
+            font-size: 1.2rem;
             color: #6c757d;
-            margin-top: 5px;
+            margin-top: 8px;
         }
 
-        /* Right side (empty for now, but keeps layout balanced) */
+        /* Right side (empty, keeps title centered) */
         .right-placeholder {
-            width: 60px; /* same as logo width to balance */
+            width: 100px; /* matches new logo width approx */
         }
 
         /* Responsive: stack on small screens */
@@ -63,51 +63,34 @@
                 text-align: center;
             }
             .logo {
-                margin-bottom: 10px;
+                margin-bottom: 15px;
             }
             .right-placeholder {
                 display: none;
             }
         }
 
-        /* Example page content */
-        .content {
-            padding: 30px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-
-        p {
-            line-height: 1.6;
-            color: #333;
+        /* No extra content - body has no padding or margins */
+        body {
+            background-color: white;
         }
     </style>
 </head>
 <body>
 
-<!-- ========== HEADER (same on every page) ========== -->
+<!-- ========== HEADER ONLY ========== -->
 <div class="header">
     <div class="logo">
         <img src="logo1.jpg" alt="ODRA Logo">
     </div>
     <div class="title-section">
-        <div class="company-name">ODRA by Navya Sangam Kriti</div>
+        <div class="company-name">Odra by Navya Sangam Kriti</div>
         <div class="subtitle">Management Information System</div>
     </div>
-    <div class="right-placeholder"></div> <!-- keeps title centered -->
+    <div class="right-placeholder"></div>
 </div>
 
-<!-- ========== YOUR PAGE CONTENT GOES HERE ========== -->
-<div class="content">
-    <h1>Welcome to ODRA</h1>
-    <p>This is our Management Information System.</p>
-    
-</div>
+<!-- No welcome message, no description – just empty body -->
 
 </body>
 </html>
