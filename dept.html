@@ -97,6 +97,7 @@
     }
 
     let currentEmployee = null;
+    let currentDept = null;   // track selected department
 
     function renderLogin() {
         document.getElementById("appContainer").innerHTML = `
@@ -132,7 +133,6 @@
     function renderEmployeePanel() {
         const departments = getDepartments();
         const allDepts = Object.keys(departments);
-        // Optional: put HR first if you want, but any order works
         const accessibleDepts = currentEmployee.allAccess 
             ? allDepts 
             : allDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
@@ -154,10 +154,16 @@
         }
         html += `<button class="secondary" onclick="logout()">Logout</button></div>`;
         document.getElementById("appContainer").innerHTML = html;
-        if (accessibleDepts.length > 0) selectDept(accessibleDepts[0]);
+        // If there was a previously selected department, re-select it (optional)
+        if (currentDept && accessibleDepts.includes(currentDept)) {
+            selectDept(currentDept);
+        } else if (accessibleDepts.length > 0) {
+            selectDept(accessibleDepts[0]);
+        }
     }
 
     function selectDept(deptName) {
+        currentDept = deptName;
         const departments = getDepartments();
         const allSubs = departments[deptName] || [];
         let allowedSubs = currentEmployee.allAccess 
@@ -174,8 +180,17 @@
         });
         subHtml += `</div><div id="subtabContent"></div>`;
         document.getElementById("subtabArea").innerHTML = subHtml;
-        // Automatically select the first subtab
-        selectSubtab(deptName, allowedSubs[0]);
+        
+        // Clear any previous content – do NOT auto-select any subtab
+        document.getElementById("subtabContent").innerHTML = `<div class="content-placeholder">
+            <p>Select a subtab above to view content.</p>
+        </div>`;
+        
+        // Highlight the active department button
+        document.querySelectorAll('.dept-btn').forEach(btn => {
+            if (btn.innerText === deptName) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
     }
 
     function selectSubtab(dept, subtab) {
@@ -240,6 +255,7 @@
     function logout() {
         sessionStorage.removeItem("loggedInEmp");
         currentEmployee = null;
+        currentDept = null;
         renderLogin();
     }
 
