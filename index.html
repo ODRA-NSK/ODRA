@@ -15,7 +15,6 @@
             font-family: Arial, sans-serif;
         }
 
-        /* Header styling */
         .header {
             display: flex;
             align-items: center;
@@ -26,14 +25,13 @@
             flex-wrap: wrap;
         }
 
-        /* Left: Logo - BIGGER */
+        /* Logo now wider (length increased) */
         .logo img {
-            height: 100px;      /* increased from 60px to 100px */
-            width: auto;
+            width: 200px;      /* adjust this value to make it longer/wider */
+            height: auto;
             display: block;
         }
 
-        /* Centre: Title & Subtitle */
         .title-section {
             text-align: center;
             flex-grow: 1;
@@ -51,12 +49,10 @@
             margin-top: 8px;
         }
 
-        /* Right side (empty, keeps title centered) */
         .right-placeholder {
-            width: 100px; /* matches new logo width approx */
+            width: 200px; /* matches logo width to keep title centered */
         }
 
-        /* Responsive: stack on small screens */
         @media (max-width: 700px) {
             .header {
                 flex-direction: column;
@@ -69,16 +65,10 @@
                 display: none;
             }
         }
-
-        /* No extra content - body has no padding or margins */
-        body {
-            background-color: white;
-        }
     </style>
 </head>
 <body>
 
-<!-- ========== HEADER ONLY ========== -->
 <div class="header">
     <div class="logo">
         <img src="logo1.jpg" alt="ODRA Logo">
@@ -89,8 +79,6 @@
     </div>
     <div class="right-placeholder"></div>
 </div>
-
-<!-- No welcome message, no description – just empty body -->
 
 </body>
 </html>
