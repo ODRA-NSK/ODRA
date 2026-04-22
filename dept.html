@@ -13,7 +13,6 @@
         body {
             font-family: Arial, sans-serif;
         }
-        /* Same header style as index.html */
         .header {
             display: flex;
             align-items: center;
@@ -62,8 +61,6 @@
             .nav-menu { margin-top: 10px; }
             .nav-menu a { margin: 0 10px; }
         }
-
-        /* Login & content area */
         .container {
             max-width: 800px;
             margin: 50px auto;
@@ -76,7 +73,7 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             display: inline-block;
-            width: 300px;
+            width: 320px;
         }
         input {
             width: 100%;
@@ -144,7 +141,7 @@
     <div id="loginArea">
         <div class="login-box">
             <h3>Employee Login</h3>
-            <input type="text" id="username" placeholder="Employee ID or Name">
+            <input type="text" id="empName" placeholder="Your Full Name">
             <input type="password" id="password" placeholder="Password">
             <button onclick="login()">Login</button>
             <div id="errorMsg" class="error"></div>
@@ -160,59 +157,64 @@
 </div>
 
 <script>
-    // ========== AUTHORIZED EMPLOYEES LIST ==========
+    // ========== MAINTAIN THIS LIST BY EMPLOYEE NAME ==========
     // Add or remove employees here. Each employee has:
-    // - username (what they type)
-    // - password (simple, can be changed)
-    // - displayName (shown after login)
-    // - department (what they can see – you can customize)
+    // - name: their full name (what they type in login)
+    // - password: their personal password
+    // - department: which department data they can see
     const authorizedEmployees = [
-        { username: "emp001", password: "odra123", displayName: "Alice Sharma", department: "Sales" },
-        { username: "emp002", password: "odra456", displayName: "Bob Kumar", department: "IT" },
-        { username: "admin", password: "admin123", displayName: "Admin User", department: "All Departments" }
+        { name: "Alice Sharma", password: "alice123", department: "Sales" },
+        { name: "Bob Kumar",   password: "bob456",   department: "IT" },
+        { name: "Charlie Lee", password: "charlie789", department: "HR" },
+        { name: "Admin User",  password: "admin123", department: "All Departments" }
     ];
 
-    // Department data (what you want to show)
+    // ========== DEPARTMENT DATA (what each department sees) ==========
     const deptData = {
         "Sales": [
-            { "Employee": "Alice Sharma", "Target": "100 units", "Achieved": "80 units" },
-            { "Employee": "John Doe", "Target": "150 units", "Achieved": "140 units" }
+            { "Metric": "Monthly Target", "Value": "$50,000", "Achieved": "$45,000" },
+            { "Metric": "Top Product", "Value": "Product A", "Units": "320" }
         ],
         "IT": [
-            { "Employee": "Bob Kumar", "Task": "Server Maintenance", "Status": "Completed" },
-            { "Employee": "Sara Lee", "Task": "Database Update", "Status": "In Progress" }
+            { "Project": "Website Redesign", "Progress": "75%", "Deadline": "June 30" },
+            { "Project": "Server Upgrade", "Progress": "40%", "Deadline": "July 15" }
+        ],
+        "HR": [
+            { "Employee": "John Doe", "Attendance": "95%", "Leave Balance": "12 days" },
+            { "Employee": "Jane Smith", "Attendance": "88%", "Leave Balance": "8 days" }
         ],
         "All Departments": [
-            { "Department": "Sales", "Metric": "Revenue", "Value": "$50K" },
-            { "Department": "IT", "Metric": "Tickets Closed", "Value": "23" },
-            { "Department": "HR", "Metric": "New Hires", "Value": "4" }
+            { "Department": "Sales", "Head": "Alice Sharma", "Budget": "$200K" },
+            { "Department": "IT", "Head": "Bob Kumar", "Budget": "$150K" },
+            { "Department": "HR", "Head": "Charlie Lee", "Budget": "$100K" }
         ]
     };
 
     function login() {
-        const username = document.getElementById("username").value.trim();
+        const empName = document.getElementById("empName").value.trim();
         const password = document.getElementById("password").value.trim();
         const errorDiv = document.getElementById("errorMsg");
 
-        const employee = authorizedEmployees.find(emp => emp.username === username && emp.password === password);
+        // Find employee by name (case-insensitive)
+        const employee = authorizedEmployees.find(emp => 
+            emp.name.toLowerCase() === empName.toLowerCase() && emp.password === password
+        );
 
         if (employee) {
-            // Store login info in sessionStorage (clears when browser closed)
             sessionStorage.setItem("loggedIn", "true");
-            sessionStorage.setItem("userDisplay", employee.displayName);
+            sessionStorage.setItem("userName", employee.name);
             sessionStorage.setItem("userDept", employee.department);
             showContent(employee);
         } else {
-            errorDiv.innerText = "Invalid Employee ID or Password. Access denied.";
+            errorDiv.innerText = "Invalid name or password. Access denied.";
         }
     }
 
     function showContent(employee) {
         document.getElementById("loginArea").style.display = "none";
         document.getElementById("deptContent").style.display = "block";
-        document.getElementById("userName").innerText = employee.displayName;
+        document.getElementById("userName").innerText = employee.name;
 
-        // Decide which data to show based on department
         let dataToShow = [];
         if (employee.department === "All Departments") {
             dataToShow = deptData["All Departments"];
@@ -222,20 +224,19 @@
             dataToShow = [{ "Info": "No data available for your department." }];
         }
 
-        // Build HTML table
         if (dataToShow.length === 0) {
             document.getElementById("departmentTable").innerHTML = "<p>No data found.</p>";
             return;
         }
 
         const headers = Object.keys(dataToShow[0]);
-        let tableHtml = "<table><tr>";
+        let tableHtml = "<table>";
         headers.forEach(h => {
             tableHtml += `<th>${h}</th>`;
         });
         tableHtml += "</tr>";
         dataToShow.forEach(row => {
-            tableHtml += "<tr>";
+            tableHtml += " etxek";
             headers.forEach(h => {
                 tableHtml += `<td>${row[h] || ""}</td>`;
             });
@@ -250,13 +251,12 @@
         location.reload();
     }
 
-    // Check if already logged in (e.g., after refresh)
     window.onload = function() {
         const loggedIn = sessionStorage.getItem("loggedIn");
         if (loggedIn === "true") {
-            const displayName = sessionStorage.getItem("userDisplay");
+            const name = sessionStorage.getItem("userName");
             const dept = sessionStorage.getItem("userDept");
-            showContent({ displayName: displayName, department: dept });
+            showContent({ name: name, department: dept });
         } else {
             document.getElementById("loginArea").style.display = "block";
             document.getElementById("deptContent").style.display = "none";
