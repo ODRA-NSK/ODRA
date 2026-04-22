@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel – ODRA</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f6f9; }
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            background-color: #2c3e50; padding: 15px 30px; color: white; flex-wrap: wrap;
+        }
+        .logo img { width: 150px; height: auto; }
+        .title-section { text-align: center; flex-grow: 1; }
+        .company-name { font-size: 1.5rem; font-weight: bold; }
+        .nav-menu a { color: white; text-decoration: none; margin-left: 20px; background: #1a252f; padding: 8px 15px; border-radius: 5px; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input, select, button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #2c3e50; color: white; cursor: pointer; border: none; }
+        button.danger { background: #e74c3c; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #2c3e50; color: white; }
+        .error { color: red; }
+        .success { color: green; }
+        .subtab-group { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="logo"><img src="logo1.jpg" alt="ODRA Logo"></div>
+    <div class="title-section"><div class="company-name">ODRA Admin Panel</div></div>
+    <div class="nav-menu">
+        <a href="index.html">Home</a>
+        <a href="dept.html">Dept Wise</a>
+        <a href="admin.html">Admin</a>
+    </div>
+</div>
+<div class="container" id="adminContainer"></div>
+
+<script>
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "admin123";
+
+    // Default structure: departments with sub-tabs, and employees with per-department subtab permissions
+    const defaultDepartments = {
+        "Sales": ["Overview", "Monthly Target", "Achievements"],
+        "IT": ["Projects", "Tickets", "Infrastructure"],
+        "HR": ["Attendance", "Leaves", "Recruitment"]
+    };
+
+    const defaultEmployees = [
+        { name: "Alice Sharma", password: "alice123", 
+          permissions: { "Sales": ["Overview", "Monthly Target"] } },
+        { name: "Bob Kumar", password: "bob456", 
+          permissions: { "IT": ["Projects", "Tickets"] } },
+        { name: "Charlie Lee", password: "charlie789", 
+          permissions: { "HR": ["Attendance", "Leaves"] } },
+        { name: "David Wilson", password: "david2025", 
+          permissions: { "Sales": ["Overview", "Monthly Target", "Achievements"], "IT": ["Projects"] } }
+    ];
+
+    function initData() {
+        if (!localStorage.getItem("departments")) {
+            localStorage.setItem("departments", JSON.stringify(defaultDepartments));
+        }
+        if (!localStorage.getItem("employees")) {
+            localStorage.setItem("employees", JSON.stringify(defaultEmployees));
+        }
+    }
+
+    let adminLoggedIn = false;
+
+    function renderAdminLogin() {
+        document.getElementById("adminContainer").innerHTML = `
+            <div class="card" style="max-width:400px; margin:auto;">
+                <h2>Admin Login</h2>
+                <input type="text" id="adminUser" placeholder="Username">
+                <input type="password" id="adminPass" placeholder="Password">
+                <button onclick="adminLogin()">Login</button>
+                <div id="loginError" class="error"></div>
+            </div>
+        `;
+    }
+
+    function adminLogin() {
+        const user = document.getElementById("adminUser").value;
+        const pass = document.getElementById("adminPass").value;
+        if (user === ADMIN_USER && pass === ADMIN_PASS) {
+            adminLoggedIn = true;
+            renderAdminPanel();
+        } else {
+            document.getElementById("loginError").innerText = "Invalid admin credentials";
+        }
+    }
+
+    function renderAdminPanel() {
+        const departments = JSON.parse(localStorage.getItem("departments"));
+        const employees = JSON.parse(localStorage.getItem("employees"));
+        const allDepts = Object.keys(departments);
+
+        // Build department & subtabs management UI
+        let deptHtml = `<h3>📁 Manage Departments & Sub‑tabs</h3>`;
+        for (let dept of allDepts) {
+            let subtabs = departments[dept];
+            deptHtml += `<div class="subtab-group">
+                <strong>${dept}</strong>
+                <div>Sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
+                <input type="text" id="newSubtab-${dept}" placeholder="New subtab name">
+                <button onclick="addSubtab('${dept}')">+ Add Subtab</button>
+                <button onclick="removeSubtab('${dept}')">- Remove Last</button>
+            </div>`;
+        }
+        deptHtml += `<div><input type="text" id="newDeptName" placeholder="New department name">
+                     <button onclick="addDepartment()">➕ Add Department</button></div>`;
+
+        // Employee list with permission editing
+        let empRows = "";
+        employees.forEach((emp, idx) => {
+            let permHtml = "";
+            for (let dept of allDepts) {
+                let currentSubs = emp.permissions[dept] || [];
+                let subtabs = departments[dept];
+                permHtml += `<div><strong>${dept}</strong>: 
+                    <select multiple id="perm-${idx}-${dept}" style="width:200px; height:80px;">`;
+                subtabs.forEach(sub => {
+                    let selected = currentSubs.includes(sub) ? "selected" : "";
+                    permHtml += `<option value="${sub}" ${selected}>${sub}</option>`;
+                });
+                permHtml += `</select></div>`;
+            }
+            empRows += `
+                <tr>
+                    <td>${emp.name}</td>
+                    <td>${Object.keys(emp.permissions).join(", ")}</td>
+                    <td>
+                        <button onclick="editPermissions(${idx})">✏️ Edit Permissions</button>
+                        <button onclick="resetPassword(${idx})">Reset Password</button>
+                        <button class="danger" onclick="deleteEmployee(${idx})">Delete</button>
+                    </td>
+                </tr>
+                <tr id="permRow-${idx}" style="display:none;">
+                    <td colspan="3">
+                        <div id="permEdit-${idx}">${permHtml}</div>
+                        <button onclick="savePermissions(${idx})">Save Permissions</button>
+                        <button onclick="cancelEdit(${idx})">Cancel</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        const addEmpForm = `
+            <div class="card">
+                <h2>➕ Add New Employee</h2>
+                <input type="text" id="newName" placeholder="Full Name">
+                <input type="text" id="newPass" placeholder="Password">
+                <div>Select departments & sub‑tabs (Ctrl+click for multiple):</div>
+                ${allDepts.map(dept => `
+                    <div><strong>${dept}</strong>
+                        <select multiple id="newPerm-${dept}" style="width:200px; height:80px;">
+                            ${departments[dept].map(sub => `<option value="${sub}">${sub}</option>`).join('')}
+                        </select>
+                    </div>
+                `).join('')}
+                <button onclick="addEmployee()">Add Employee</button>
+                <div id="addMsg"></div>
+            </div>
+        `;
+
+        document.getElementById("adminContainer").innerHTML = `
+            <div class="card">${deptHtml}</div>
+            ${addEmpForm}
+            <div class="card">
+                <h2>📋 Employee List & Permissions</h2>
+                <table>
+                    <thead><tr><th>Name</th><th>Departments (visible)</th><th>Actions</th></tr></thead>
+                    <tbody>${empRows}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    // Department & subtab management
+    function addSubtab(dept) {
+        let depts = JSON.parse(localStorage.getItem("departments"));
+        let newSub = document.getElementById(`newSubtab-${dept}`).value.trim();
+        if (newSub && !depts[dept].includes(newSub)) {
+            depts[dept].push(newSub);
+            localStorage.setItem("departments", JSON.stringify(depts));
+            renderAdminPanel();
+        }
+    }
+    function removeSubtab(dept) {
+        let depts = JSON.parse(localStorage.getItem("departments"));
+        depts[dept].pop();
+        if (depts[dept].length === 0) depts[dept] = ["General"];
+        localStorage.setItem("departments", JSON.stringify(depts));
+        renderAdminPanel();
+    }
+    function addDepartment() {
+        let newDept = document.getElementById("newDeptName").value.trim();
+        if (newDept && !localStorage.getItem("departments")[newDept]) {
+            let depts = JSON.parse(localStorage.getItem("departments"));
+            depts[newDept] = ["General"];
+            localStorage.setItem("departments", JSON.stringify(depts));
+            renderAdminPanel();
+        }
+    }
+
+    // Employee management
+    function addEmployee() {
+        const name = document.getElementById("newName").value.trim();
+        const pass = document.getElementById("newPass").value.trim();
+        const departments = JSON.parse(localStorage.getItem("departments"));
+        let permissions = {};
+        for (let dept of Object.keys(departments)) {
+            let select = document.getElementById(`newPerm-${dept}`);
+            if (select) {
+                let selected = Array.from(select.selectedOptions).map(opt => opt.value);
+                if (selected.length > 0) permissions[dept] = selected;
+            }
+        }
+        if (!name || !pass || Object.keys(permissions).length === 0) {
+            document.getElementById("addMsg").innerText = "Name, password and at least one permission required";
+            return;
+        }
+        let employees = JSON.parse(localStorage.getItem("employees"));
+        if (employees.find(e => e.name.toLowerCase() === name.toLowerCase())) {
+            document.getElementById("addMsg").innerText = "Employee already exists";
+            return;
+        }
+        employees.push({ name, password: pass, permissions });
+        localStorage.setItem("employees", JSON.stringify(employees));
+        document.getElementById("addMsg").innerHTML = '<span class="success">Added successfully</span>';
+        renderAdminPanel();
+    }
+
+    function editPermissions(idx) {
+        let row = document.getElementById(`permRow-${idx}`);
+        if (row.style.display === "none") row.style.display = "table-row";
+        else row.style.display = "none";
+    }
+    function cancelEdit(idx) {
+        document.getElementById(`permRow-${idx}`).style.display = "none";
+    }
+    function savePermissions(idx) {
+        let employees = JSON.parse(localStorage.getItem("employees"));
+        let emp = employees[idx];
+        let departments = JSON.parse(localStorage.getItem("departments"));
+        let newPerms = {};
+        for (let dept of Object.keys(departments)) {
+            let select = document.getElementById(`perm-${idx}-${dept}`);
+            if (select) {
+                let selected = Array.from(select.selectedOptions).map(opt => opt.value);
+                if (selected.length > 0) newPerms[dept] = selected;
+            }
+        }
+        emp.permissions = newPerms;
+        localStorage.setItem("employees", JSON.stringify(employees));
+        renderAdminPanel();
+    }
+    function resetPassword(idx) {
+        let newPass = prompt("Enter new password:");
+        if (newPass && newPass.trim()) {
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            employees[idx].password = newPass.trim();
+            localStorage.setItem("employees", JSON.stringify(employees));
+            alert("Password reset");
+            renderAdminPanel();
+        }
+    }
+    function deleteEmployee(idx) {
+        if (confirm("Delete employee?")) {
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            employees.splice(idx, 1);
+            localStorage.setItem("employees", JSON.stringify(employees));
+            renderAdminPanel();
+        }
+    }
+
+    initData();
+    renderAdminLogin();
+</script>
+</body>
+</html>
