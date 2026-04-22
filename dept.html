@@ -31,6 +31,7 @@
         th { background: #2c3e50; color: white; }
         .error { color: red; }
         .success { color: green; }
+        .all-access-badge { background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -49,23 +50,11 @@
 <div class="container" id="appContainer"></div>
 
 <script>
-    // Sample data for each subtab (you can edit this)
+    // Sample content for each subtab (edit as needed)
     const subtabContent = {
-        "Sales": {
-            "Overview": "Sales overview: Q2 revenue $120K, up 15%.",
-            "Monthly Target": "June target: $50K, current $45K.",
-            "Achievements": "Best performer: Alice Sharma with $80K."
-        },
-        "IT": {
-            "Projects": "Website redesign 75% complete. Server upgrade 40%.",
-            "Tickets": "Open tickets: 12, resolved this week: 45.",
-            "Infrastructure": "Cloud migration scheduled for July."
-        },
-        "HR": {
-            "Attendance": "Overall attendance: 96% this month.",
-            "Leaves": "Pending leave requests: 3.",
-            "Recruitment": "Open positions: 2 developers, 1 HR associate."
-        }
+        // You will populate this as you create departments/subtabs
+        // Example:
+        // "Sales": { "Overview": "Sales data...", "Targets": "Targets..." }
     };
 
     function getDepartments() {
@@ -75,7 +64,7 @@
         return JSON.parse(localStorage.getItem("employees")) || [];
     }
 
-    let currentEmployee = null; // { name, permissions }
+    let currentEmployee = null; // { name, allAccess?, permissions? }
 
     function renderLogin() {
         document.getElementById("appContainer").innerHTML = `
@@ -96,7 +85,11 @@
         const employees = getEmployees();
         const emp = employees.find(e => e.name.toLowerCase() === name.toLowerCase() && e.password === pass);
         if (emp) {
-            currentEmployee = { name: emp.name, permissions: emp.permissions };
+            currentEmployee = { 
+                name: emp.name, 
+                allAccess: emp.allAccess === true,
+                permissions: emp.permissions || {}
+            };
             sessionStorage.setItem("loggedInEmp", JSON.stringify(currentEmployee));
             renderEmployeePanel();
         } else {
@@ -105,38 +98,50 @@
     }
 
     function renderEmployeePanel() {
-        const perms = currentEmployee.permissions;
         const departments = getDepartments();
+        const allDepts = Object.keys(departments);
+        let accessibleDepts = [];
+        if (currentEmployee.allAccess) {
+            accessibleDepts = allDepts;
+        } else {
+            accessibleDepts = allDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
+        }
+
         let html = `
             <div class="card">
-                <div style="display:flex; justify-content:space-between;">
-                    <h2>Welcome, ${currentEmployee.name}</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Welcome, ${currentEmployee.name} ${currentEmployee.allAccess ? '<span class="all-access-badge">ALL ACCESS</span>' : ''}</h2>
                     <button onclick="showChangePassword()">Change Password</button>
                 </div>
         `;
-        // Department buttons
-        let deptButtons = "";
-        for (let dept of Object.keys(perms)) {
-            if (departments[dept]) {
+        if (accessibleDepts.length === 0) {
+            html += `<p class="empty-msg">You have no department access. Please contact admin.</p>`;
+        } else {
+            let deptButtons = "";
+            accessibleDepts.forEach(dept => {
                 deptButtons += `<button class="dept-btn" onclick="selectDept('${dept}')">${dept}</button>`;
-            }
+            });
+            html += `<div class="dept-selector">${deptButtons}</div>`;
+            html += `<div id="subtabArea"></div>`;
         }
-        html += `<div class="dept-selector">${deptButtons || "<p>No departments assigned</p>"}</div>`;
-        html += `<div id="subtabArea"></div>`;
         html += `<button class="secondary" onclick="logout()">Logout</button></div>`;
         document.getElementById("appContainer").innerHTML = html;
-        if (deptButtons) selectDept(Object.keys(perms)[0]); // auto-select first
+        if (accessibleDepts.length > 0) selectDept(accessibleDepts[0]);
     }
 
     function selectDept(deptName) {
         currentDept = deptName;
-        // Highlight active department button
         document.querySelectorAll('.dept-btn').forEach(btn => {
-            if (btn.innerText === deptName) btn.classList.add('active');
-            else btn.classList.remove('active');
+            btn.classList.toggle('active', btn.innerText === deptName);
         });
-        // Show subtabs that the user has permission for
-        const allowedSubs = currentEmployee.permissions[deptName] || [];
+        const departments = getDepartments();
+        const allSubs = departments[deptName] || [];
+        let allowedSubs = [];
+        if (currentEmployee.allAccess) {
+            allowedSubs = allSubs;
+        } else {
+            allowedSubs = currentEmployee.permissions[deptName] || [];
+        }
         if (allowedSubs.length === 0) {
             document.getElementById("subtabArea").innerHTML = "<p>You have no access to any subtab in this department.</p>";
             return;
@@ -147,17 +152,14 @@
         });
         subHtml += `</div><div id="subtabContent"></div>`;
         document.getElementById("subtabArea").innerHTML = subHtml;
-        // Auto-select first subtab
         selectSubtab(deptName, allowedSubs[0]);
     }
 
     function selectSubtab(dept, subtab) {
-        // Highlight active subtab
         document.querySelectorAll('.subtab-btn').forEach(btn => {
-            if (btn.innerText === subtab) btn.classList.add('active');
-            else btn.classList.remove('active');
+            btn.classList.toggle('active', btn.innerText === subtab);
         });
-        let content = subtabContent[dept]?.[subtab] || "No content defined for this subtab.";
+        let content = subtabContent[dept]?.[subtab] || "No content defined for this subtab yet. Admin can edit subtabContent in dept.html.";
         document.getElementById("subtabContent").innerHTML = `<div class="card"><h3>${subtab}</h3><p>${content}</p></div>`;
     }
 
@@ -201,7 +203,7 @@
         renderLogin();
     }
 
-    // On load, check for existing session
+    // On load, check existing session
     window.onload = () => {
         const stored = sessionStorage.getItem("loggedInEmp");
         if (stored) {
