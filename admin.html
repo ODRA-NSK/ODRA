@@ -26,11 +26,15 @@
         th { background: #2c3e50; color: white; }
         .error { color: red; }
         .success { color: green; }
-        .subtab-group { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .subtab-group { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; position: relative; }
         .log-entry { font-family: monospace; font-size: 0.9em; }
         .log-controls { margin-bottom: 10px; }
         .empty-msg { color: #6c757d; font-style: italic; padding: 10px; }
         .all-access-badge { background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; display: inline-block; }
+        .dept-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .dept-header strong { font-size: 1.2rem; }
+        .subtab-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; }
+        .subtab-select { width: auto; min-width: 150px; }
     </style>
 </head>
 <body>
@@ -169,20 +173,33 @@
         const employees = JSON.parse(localStorage.getItem("employees"));
         const allDepts = Object.keys(departments);
 
-        // ---- Manage Departments & Sub-tabs ----
+        // ---- Manage Departments & Sub-tabs (with delete buttons and subtab selection removal) ----
         let deptHtml = `<h3>📁 Manage Departments & Sub‑tabs</h3>`;
         if (allDepts.length === 0) {
             deptHtml += `<div class="empty-msg">No departments yet. Use the form below to create your first department.</div>`;
         } else {
             for (let dept of allDepts) {
                 let subtabs = departments[dept];
-                deptHtml += `<div class="subtab-group" id="deptGroup-${dept}">
-                    <strong>${dept}</strong>
-                    <div>Sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
-                    <input type="text" id="newSubtab-${dept}" placeholder="New subtab name">
-                    <button onclick="addSubtab('${dept}')">+ Add Subtab</button>
-                    <button onclick="removeSubtab('${dept}')">- Remove Last</button>
-                </div>`;
+                // Create dropdown options for subtabs
+                let subtabOptions = subtabs.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+                deptHtml += `
+                    <div class="subtab-group" id="deptGroup-${dept}">
+                        <div class="dept-header">
+                            <strong>${dept}</strong>
+                            <button onclick="deleteDepartment('${dept}')" class="danger" style="background:#c0392b;">🗑 Delete Department</button>
+                        </div>
+                        <div>Current sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
+                        <div class="subtab-controls">
+                            <input type="text" id="newSubtab-${dept}" placeholder="New subtab name" style="flex:2;">
+                            <button onclick="addSubtab('${dept}')">+ Add</button>
+                            <select id="removeSubtabSelect-${dept}" class="subtab-select">
+                                <option value="">-- Select subtab to remove --</option>
+                                ${subtabOptions}
+                            </select>
+                            <button onclick="removeSelectedSubtab('${dept}')" class="danger">✖ Remove Selected</button>
+                        </div>
+                    </div>
+                `;
             }
         }
         deptHtml += `<div style="margin-top:15px;">
@@ -222,11 +239,11 @@
             let empRows = "";
             employees.forEach((emp, idx) => {
                 const hasAllAccess = emp.allAccess === true;
-                const permissionsDisplay = hasAllAccess ? '<span class="all-access-badge">ALL ACCESS</span>' : (Object.keys(emp.permissions).join(", ") || "None");
+                const permissionsDisplay = hasAllAccess ? '<span class="all-access-badge">ALL ACCESS</span>' : (Object.keys(emp.permissions || {}).join(", ") || "None");
                 let permHtml = "";
                 if (!hasAllAccess) {
                     for (let dept of allDepts) {
-                        let currentSubs = emp.permissions[dept] || [];
+                        let currentSubs = (emp.permissions && emp.permissions[dept]) ? emp.permissions[dept] : [];
                         let subtabs = departments[dept] || [];
                         permHtml += `<div><strong>${dept}</strong>: 
                             <select multiple id="perm-${idx}-${dept}" style="width:200px; height:80px;">`;
@@ -282,20 +299,7 @@
         renderLogs();
     }
 
-    // ---- Grant All Access to existing employee ----
-    function grantAllAccess(idx) {
-        if (confirm("Grant ALL ACCESS to this employee? They will see every department and all sub-tabs.")) {
-            let employees = JSON.parse(localStorage.getItem("employees"));
-            let empName = employees[idx].name;
-            employees[idx].allAccess = true;
-            employees[idx].permissions = {}; // clear specific permissions
-            localStorage.setItem("employees", JSON.stringify(employees));
-            addLog("Grant All Access", `Granted all access to employee "${empName}".`);
-            renderAdminPanel();
-        }
-    }
-
-    // ---- Department & Subtab Management ----
+    // ========== DEPARTMENT & SUBTAB MANAGEMENT (with removal) ==========
     function addDepartment() {
         let newDept = document.getElementById("newDeptName").value.trim();
         if (!newDept) return;
@@ -310,6 +314,30 @@
         renderAdminPanel();
         document.getElementById("newDeptName").value = "";
     }
+
+    function deleteDepartment(deptName) {
+        if (confirm(`Delete department "${deptName}" and remove it from all employees? This action cannot be undone.`)) {
+            let departments = JSON.parse(localStorage.getItem("departments"));
+            if (!departments[deptName]) return;
+            delete departments[deptName];
+            localStorage.setItem("departments", JSON.stringify(departments));
+            
+            // Remove this department from all employees' permissions
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            let updated = false;
+            employees.forEach(emp => {
+                if (emp.permissions && emp.permissions[deptName]) {
+                    delete emp.permissions[deptName];
+                    updated = true;
+                }
+            });
+            if (updated) localStorage.setItem("employees", JSON.stringify(employees));
+            
+            addLog("Delete Department", `Deleted department "${deptName}" and removed its permissions from employees.`);
+            renderAdminPanel();
+        }
+    }
+
     function addSubtab(dept) {
         let depts = JSON.parse(localStorage.getItem("departments"));
         let newSub = document.getElementById(`newSubtab-${dept}`).value.trim();
@@ -318,21 +346,61 @@
             localStorage.setItem("departments", JSON.stringify(depts));
             addLog("Add Subtab", `Added subtab "${newSub}" to department "${dept}".`);
             renderAdminPanel();
-        }
-    }
-    function removeSubtab(dept) {
-        let depts = JSON.parse(localStorage.getItem("departments"));
-        if (depts[dept].length > 1) {
-            let removed = depts[dept].pop();
-            localStorage.setItem("departments", JSON.stringify(depts));
-            addLog("Remove Subtab", `Removed subtab "${removed}" from department "${dept}".`);
-            renderAdminPanel();
-        } else {
-            alert("At least one subtab required.");
+        } else if (newSub && depts[dept].includes(newSub)) {
+            alert("Subtab already exists.");
         }
     }
 
-    // ---- Employee Management ----
+    function removeSelectedSubtab(dept) {
+        let select = document.getElementById(`removeSubtabSelect-${dept}`);
+        let selectedSub = select.value;
+        if (!selectedSub) {
+            alert("Please select a subtab to remove.");
+            return;
+        }
+        let depts = JSON.parse(localStorage.getItem("departments"));
+        let subtabs = depts[dept];
+        if (subtabs.length <= 1) {
+            alert("Cannot remove the last subtab. Delete the department instead.");
+            return;
+        }
+        const index = subtabs.indexOf(selectedSub);
+        if (index !== -1) {
+            subtabs.splice(index, 1);
+            depts[dept] = subtabs;
+            localStorage.setItem("departments", JSON.stringify(depts));
+            
+            // Also remove this subtab from employees' permissions for this department
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            let updated = false;
+            employees.forEach(emp => {
+                if (emp.permissions && emp.permissions[dept] && emp.permissions[dept].includes(selectedSub)) {
+                    emp.permissions[dept] = emp.permissions[dept].filter(sub => sub !== selectedSub);
+                    updated = true;
+                    // If after removal the department has no subtabs left, remove the department entry from permissions
+                    if (emp.permissions[dept].length === 0) delete emp.permissions[dept];
+                }
+            });
+            if (updated) localStorage.setItem("employees", JSON.stringify(employees));
+            
+            addLog("Remove Subtab", `Removed subtab "${selectedSub}" from department "${dept}".`);
+            renderAdminPanel();
+        }
+    }
+
+    // ========== EMPLOYEE MANAGEMENT (unchanged but kept) ==========
+    function grantAllAccess(idx) {
+        if (confirm("Grant ALL ACCESS to this employee? They will see every department and all sub-tabs.")) {
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            let empName = employees[idx].name;
+            employees[idx].allAccess = true;
+            employees[idx].permissions = {};
+            localStorage.setItem("employees", JSON.stringify(employees));
+            addLog("Grant All Access", `Granted all access to employee "${empName}".`);
+            renderAdminPanel();
+        }
+    }
+
     function addEmployee() {
         const name = document.getElementById("newName").value.trim();
         const pass = document.getElementById("newPass").value.trim();
@@ -373,6 +441,7 @@
         document.getElementById("addMsg").innerHTML = '<span class="success">Added successfully</span>';
         renderAdminPanel();
     }
+
     function editPermissions(idx) {
         let row = document.getElementById(`permRow-${idx}`);
         row.style.display = row.style.display === "none" ? "table-row" : "none";
