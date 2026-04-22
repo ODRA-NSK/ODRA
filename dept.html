@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Dept Wise – ODRA</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -23,17 +23,21 @@
         button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
         
-        /* Department buttons – horizontal scrollable row */
+        /* FORCE HORIZONTAL LAYOUT FOR DEPARTMENT BUTTONS */
         .dept-selector {
-            display: flex;
-            flex-direction: row;
-            overflow-x: auto;
-            white-space: nowrap;
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
             gap: 10px;
             padding-bottom: 10px;
             margin-bottom: 10px;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
         }
         .dept-btn {
+            flex: 0 0 auto !important;    /* do not shrink, do not grow */
             background: #e9ecef;
             color: #2c3e50;
             border: none;
@@ -42,7 +46,6 @@
             cursor: pointer;
             font-weight: bold;
             transition: all 0.2s;
-            flex-shrink: 0;
         }
         .dept-btn.active {
             background: #2c3e50;
@@ -53,17 +56,21 @@
             background: #d4d9e0;
         }
         
-        /* Subtab buttons – also horizontal scrollable */
+        /* Force horizontal for subtab buttons as well */
         .subtab-selector {
-            display: flex;
-            flex-direction: row;
-            overflow-x: auto;
-            white-space: nowrap;
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
             gap: 10px;
             padding-bottom: 10px;
             margin-top: 15px;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
         }
         .subtab-btn {
+            flex: 0 0 auto !important;
             background: #e9ecef;
             color: #2c3e50;
             border: none;
@@ -71,7 +78,6 @@
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.2s;
-            flex-shrink: 0;
         }
         .subtab-btn.active {
             background: #1a5276;
@@ -158,7 +164,7 @@
             : allDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
 
         let html = `<div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
                 <h2>Welcome, ${currentEmployee.name}</h2>
                 <button onclick="showChangePassword()">Change Password</button>
             </div>`;
