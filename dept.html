@@ -3,130 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dept Wise – Restricted</title>
+    <title>Dept Wise – ODRA</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f6f9; }
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #f8f9fa;
-            padding: 15px 30px;
-            border-bottom: 2px solid #dee2e6;
+            display: flex; align-items: center; justify-content: space-between;
+            background-color: #f8f9fa; padding: 15px 30px; border-bottom: 2px solid #dee2e6;
             flex-wrap: wrap;
         }
-        .logo img {
-            width: 200px;
-            height: auto;
-            display: block;
-        }
-        .title-section {
-            text-align: center;
-            flex-grow: 1;
-        }
-        .company-name {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .subtitle {
-            font-size: 1.2rem;
-            color: #6c757d;
-            margin-top: 8px;
-        }
-        .nav-menu a {
-            text-decoration: none;
-            color: #2c3e50;
-            margin-left: 20px;
-            font-weight: bold;
-            padding: 8px 12px;
-            border-radius: 5px;
-        }
-        .nav-menu a:hover {
-            background-color: #e9ecef;
-        }
-        @media (max-width: 700px) {
-            .header {
-                flex-direction: column;
-                text-align: center;
-            }
-            .logo { margin-bottom: 15px; }
-            .nav-menu { margin-top: 10px; }
-            .nav-menu a { margin: 0 10px; }
-        }
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            text-align: center;
-        }
-        .login-box {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            display: inline-block;
-            width: 320px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            background: #2c3e50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #1a252f;
-        }
-        .error {
-            color: red;
-            margin-top: 10px;
-        }
-        .dept-content {
-            display: none;
-            text-align: left;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .dept-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .dept-content th, .dept-content td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .dept-content th {
-            background-color: #2c3e50;
-            color: white;
-        }
+        .logo img { width: 200px; height: auto; }
+        .title-section { text-align: center; flex-grow: 1; }
+        .company-name { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
+        .subtitle { font-size: 1.2rem; color: #6c757d; }
+        .nav-menu a { text-decoration: none; color: #2c3e50; margin-left: 20px; font-weight: bold; padding: 8px 12px; border-radius: 5px; }
+        .nav-menu a:hover { background-color: #e9ecef; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #2c3e50; color: white; cursor: pointer; border: none; }
+        button.secondary { background: #6c757d; }
+        .dept-selector, .subtab-selector { margin: 15px 0; }
+        .dept-btn, .subtab-btn { background: #e9ecef; color: #2c3e50; margin-right: 10px; }
+        .dept-btn.active, .subtab-btn.active { background: #2c3e50; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #2c3e50; color: white; }
+        .error { color: red; }
+        .success { color: green; }
     </style>
 </head>
 <body>
-
 <div class="header">
-    <div class="logo">
-        <img src="logo1.jpg" alt="ODRA Logo">
-    </div>
+    <div class="logo"><img src="logo1.jpg" alt="ODRA Logo"></div>
     <div class="title-section">
         <div class="company-name">Odra by Navya Sangam Kriti</div>
         <div class="subtitle">Management Information System</div>
@@ -134,135 +43,174 @@
     <div class="nav-menu">
         <a href="index.html">Home</a>
         <a href="dept.html">Dept Wise</a>
+        <a href="admin.html">Admin</a>
     </div>
 </div>
-
-<div class="container">
-    <div id="loginArea">
-        <div class="login-box">
-            <h3>Employee Login</h3>
-            <input type="text" id="empName" placeholder="Your Full Name">
-            <input type="password" id="password" placeholder="Password">
-            <button onclick="login()">Login</button>
-            <div id="errorMsg" class="error"></div>
-        </div>
-    </div>
-
-    <div id="deptContent" class="dept-content">
-        <h2>Department-wise Data</h2>
-        <p>Welcome, <span id="userName"></span>! You have access to:</p>
-        <div id="departmentTable"></div>
-        <button onclick="logout()" style="margin-top:20px; background:#6c757d;">Logout</button>
-    </div>
-</div>
+<div class="container" id="appContainer"></div>
 
 <script>
-    // ========== MAINTAIN THIS LIST BY EMPLOYEE NAME ==========
-    // Add or remove employees here. Each employee has:
-    // - name: their full name (what they type in login)
-    // - password: their personal password
-    // - department: which department data they can see
-    const authorizedEmployees = [
-        { name: "Alice Sharma", password: "alice123", department: "Sales" },
-        { name: "Bob Kumar",   password: "bob456",   department: "IT" },
-        { name: "Charlie Lee", password: "charlie789", department: "HR" },
-        { name: "Admin User",  password: "admin123", department: "All Departments" }
-    ];
-
-    // ========== DEPARTMENT DATA (what each department sees) ==========
-    const deptData = {
-        "Sales": [
-            { "Metric": "Monthly Target", "Value": "$50,000", "Achieved": "$45,000" },
-            { "Metric": "Top Product", "Value": "Product A", "Units": "320" }
-        ],
-        "IT": [
-            { "Project": "Website Redesign", "Progress": "75%", "Deadline": "June 30" },
-            { "Project": "Server Upgrade", "Progress": "40%", "Deadline": "July 15" }
-        ],
-        "HR": [
-            { "Employee": "John Doe", "Attendance": "95%", "Leave Balance": "12 days" },
-            { "Employee": "Jane Smith", "Attendance": "88%", "Leave Balance": "8 days" }
-        ],
-        "All Departments": [
-            { "Department": "Sales", "Head": "Alice Sharma", "Budget": "$200K" },
-            { "Department": "IT", "Head": "Bob Kumar", "Budget": "$150K" },
-            { "Department": "HR", "Head": "Charlie Lee", "Budget": "$100K" }
-        ]
+    // Sample data for each subtab (you can edit this)
+    const subtabContent = {
+        "Sales": {
+            "Overview": "Sales overview: Q2 revenue $120K, up 15%.",
+            "Monthly Target": "June target: $50K, current $45K.",
+            "Achievements": "Best performer: Alice Sharma with $80K."
+        },
+        "IT": {
+            "Projects": "Website redesign 75% complete. Server upgrade 40%.",
+            "Tickets": "Open tickets: 12, resolved this week: 45.",
+            "Infrastructure": "Cloud migration scheduled for July."
+        },
+        "HR": {
+            "Attendance": "Overall attendance: 96% this month.",
+            "Leaves": "Pending leave requests: 3.",
+            "Recruitment": "Open positions: 2 developers, 1 HR associate."
+        }
     };
 
+    function getDepartments() {
+        return JSON.parse(localStorage.getItem("departments")) || {};
+    }
+    function getEmployees() {
+        return JSON.parse(localStorage.getItem("employees")) || [];
+    }
+
+    let currentEmployee = null; // { name, permissions }
+
+    function renderLogin() {
+        document.getElementById("appContainer").innerHTML = `
+            <div class="card" style="max-width:400px; margin:auto;">
+                <h2>Employee Login</h2>
+                <input type="text" id="empName" placeholder="Full Name">
+                <input type="password" id="empPass" placeholder="Password">
+                <button onclick="login()">Login</button>
+                <div id="loginError" class="error"></div>
+                <hr><p><a href="admin.html">Admin login</a></p>
+            </div>
+        `;
+    }
+
     function login() {
-        const empName = document.getElementById("empName").value.trim();
-        const password = document.getElementById("password").value.trim();
-        const errorDiv = document.getElementById("errorMsg");
-
-        // Find employee by name (case-insensitive)
-        const employee = authorizedEmployees.find(emp => 
-            emp.name.toLowerCase() === empName.toLowerCase() && emp.password === password
-        );
-
-        if (employee) {
-            sessionStorage.setItem("loggedIn", "true");
-            sessionStorage.setItem("userName", employee.name);
-            sessionStorage.setItem("userDept", employee.department);
-            showContent(employee);
+        const name = document.getElementById("empName").value.trim();
+        const pass = document.getElementById("empPass").value.trim();
+        const employees = getEmployees();
+        const emp = employees.find(e => e.name.toLowerCase() === name.toLowerCase() && e.password === pass);
+        if (emp) {
+            currentEmployee = { name: emp.name, permissions: emp.permissions };
+            sessionStorage.setItem("loggedInEmp", JSON.stringify(currentEmployee));
+            renderEmployeePanel();
         } else {
-            errorDiv.innerText = "Invalid name or password. Access denied.";
+            document.getElementById("loginError").innerText = "Invalid name or password";
         }
     }
 
-    function showContent(employee) {
-        document.getElementById("loginArea").style.display = "none";
-        document.getElementById("deptContent").style.display = "block";
-        document.getElementById("userName").innerText = employee.name;
-
-        let dataToShow = [];
-        if (employee.department === "All Departments") {
-            dataToShow = deptData["All Departments"];
-        } else if (deptData[employee.department]) {
-            dataToShow = deptData[employee.department];
-        } else {
-            dataToShow = [{ "Info": "No data available for your department." }];
+    function renderEmployeePanel() {
+        const perms = currentEmployee.permissions;
+        const departments = getDepartments();
+        let html = `
+            <div class="card">
+                <div style="display:flex; justify-content:space-between;">
+                    <h2>Welcome, ${currentEmployee.name}</h2>
+                    <button onclick="showChangePassword()">Change Password</button>
+                </div>
+        `;
+        // Department buttons
+        let deptButtons = "";
+        for (let dept of Object.keys(perms)) {
+            if (departments[dept]) {
+                deptButtons += `<button class="dept-btn" onclick="selectDept('${dept}')">${dept}</button>`;
+            }
         }
+        html += `<div class="dept-selector">${deptButtons || "<p>No departments assigned</p>"}</div>`;
+        html += `<div id="subtabArea"></div>`;
+        html += `<button class="secondary" onclick="logout()">Logout</button></div>`;
+        document.getElementById("appContainer").innerHTML = html;
+        if (deptButtons) selectDept(Object.keys(perms)[0]); // auto-select first
+    }
 
-        if (dataToShow.length === 0) {
-            document.getElementById("departmentTable").innerHTML = "<p>No data found.</p>";
+    function selectDept(deptName) {
+        currentDept = deptName;
+        // Highlight active department button
+        document.querySelectorAll('.dept-btn').forEach(btn => {
+            if (btn.innerText === deptName) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        // Show subtabs that the user has permission for
+        const allowedSubs = currentEmployee.permissions[deptName] || [];
+        if (allowedSubs.length === 0) {
+            document.getElementById("subtabArea").innerHTML = "<p>You have no access to any subtab in this department.</p>";
             return;
         }
+        let subHtml = `<div class="subtab-selector">`;
+        allowedSubs.forEach(sub => {
+            subHtml += `<button class="subtab-btn" onclick="selectSubtab('${deptName}', '${sub}')">${sub}</button>`;
+        });
+        subHtml += `</div><div id="subtabContent"></div>`;
+        document.getElementById("subtabArea").innerHTML = subHtml;
+        // Auto-select first subtab
+        selectSubtab(deptName, allowedSubs[0]);
+    }
 
-        const headers = Object.keys(dataToShow[0]);
-        let tableHtml = "<table>";
-        headers.forEach(h => {
-            tableHtml += `<th>${h}</th>`;
+    function selectSubtab(dept, subtab) {
+        // Highlight active subtab
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            if (btn.innerText === subtab) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
-        tableHtml += "</tr>";
-        dataToShow.forEach(row => {
-            tableHtml += " etxek";
-            headers.forEach(h => {
-                tableHtml += `<td>${row[h] || ""}</td>`;
-            });
-            tableHtml += "</tr>";
-        });
-        tableHtml += "</table>";
-        document.getElementById("departmentTable").innerHTML = tableHtml;
+        let content = subtabContent[dept]?.[subtab] || "No content defined for this subtab.";
+        document.getElementById("subtabContent").innerHTML = `<div class="card"><h3>${subtab}</h3><p>${content}</p></div>`;
+    }
+
+    function showChangePassword() {
+        document.getElementById("appContainer").innerHTML = `
+            <div class="card" style="max-width:400px; margin:auto;">
+                <h2>Change Password for ${currentEmployee.name}</h2>
+                <input type="password" id="oldPass" placeholder="Current Password">
+                <input type="password" id="newPass1" placeholder="New Password">
+                <input type="password" id="newPass2" placeholder="Confirm New Password">
+                <button onclick="changePassword()">Update</button>
+                <button onclick="renderEmployeePanel()">Cancel</button>
+                <div id="passMsg"></div>
+            </div>
+        `;
+    }
+
+    function changePassword() {
+        const old = document.getElementById("oldPass").value;
+        const new1 = document.getElementById("newPass1").value;
+        const new2 = document.getElementById("newPass2").value;
+        if (new1 !== new2) {
+            document.getElementById("passMsg").innerHTML = '<span class="error">Passwords do not match</span>';
+            return;
+        }
+        let employees = getEmployees();
+        const idx = employees.findIndex(e => e.name === currentEmployee.name);
+        if (idx === -1 || employees[idx].password !== old) {
+            document.getElementById("passMsg").innerHTML = '<span class="error">Current password is incorrect</span>';
+            return;
+        }
+        employees[idx].password = new1;
+        localStorage.setItem("employees", JSON.stringify(employees));
+        document.getElementById("passMsg").innerHTML = '<span class="success">Password changed. Please login again.</span>';
+        setTimeout(() => logout(), 2000);
     }
 
     function logout() {
-        sessionStorage.clear();
-        location.reload();
+        sessionStorage.removeItem("loggedInEmp");
+        currentEmployee = null;
+        renderLogin();
     }
 
-    window.onload = function() {
-        const loggedIn = sessionStorage.getItem("loggedIn");
-        if (loggedIn === "true") {
-            const name = sessionStorage.getItem("userName");
-            const dept = sessionStorage.getItem("userDept");
-            showContent({ name: name, department: dept });
+    // On load, check for existing session
+    window.onload = () => {
+        const stored = sessionStorage.getItem("loggedInEmp");
+        if (stored) {
+            currentEmployee = JSON.parse(stored);
+            renderEmployeePanel();
         } else {
-            document.getElementById("loginArea").style.display = "block";
-            document.getElementById("deptContent").style.display = "none";
+            renderLogin();
         }
-    }
+    };
 </script>
-
 </body>
 </html>
