@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODRA Payslip Generator (Browser)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: auto; background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 8px; }
+        h2 { font-size: 1.2rem; margin-top: 20px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
+        .col { flex: 1; min-width: 280px; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        label { font-weight: bold; display: block; margin-top: 10px; }
+        input, select, button, textarea { width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; }
+        button { background: #2c3e50; color: white; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { background: #1a252f; }
+        .status { margin-top: 15px; padding: 10px; border-radius: 6px; background: #e9ecef; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background: #2c3e50; color: white; }
+        .error { color: red; }
+        .success { color: green; }
+        .progress { background: #e9ecef; border-radius: 20px; margin: 10px 0; }
+        .progress-bar { background: #27ae60; width: 0%; height: 20px; border-radius: 20px; text-align: center; color: white; font-size: 12px; }
+    </style>
+    <!-- Libraries -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>🧾 ODRA Payslip Generator (Browser)</h1>
+    <p><em>No backend – works entirely in your browser. Upload Excel/CSV, generate PDF payslips, download ZIP.</em></p>
+
+    <div class="flex-row">
+        <!-- Left: Settings -->
+        <div class="col">
+            <h2>📅 Period</h2>
+            <label>Month</label>
+            <select id="monthSelect">
+                <option>January</option><option>February</option><option>March</option><option>April</option>
+                <option>May</option><option>June</option><option>July</option><option>August</option>
+                <option>September</option><option>October</option><option>November</option><option>December</option>
+            </select>
+            <label>Year</label>
+            <input type="number" id="yearInput" value="2025">
+
+            <h2>📎 Company Logo (PNG/JPG)</h2>
+            <input type="file" id="logoUpload" accept="image/png,image/jpeg">
+            <canvas id="logoCanvas" style="display:none;"></canvas>
+
+            <h2>🖋️ Authorized Signature (PNG, transparent)</h2>
+            <input type="file" id="sigUpload" accept="image/png">
+
+            <h2>🔖 Company Stamp (PNG)</h2>
+            <input type="file" id="stampUpload" accept="image/png">
+
+            <h2>💰 Earnings & Deductions Mapping</h2>
+            <label>Earnings (Label:Column)</label>
+            <textarea id="earnMapping" rows="2">Basic:Earn_Basic, HRA:Earn_HRA, Extra Days:Earn_Extra Days</textarea>
+            <label>Deductions (Label:Column)</label>
+            <textarea id="dedMapping" rows="3">PF:Ded_PF, ESI:Ded_ESI, P.Tax:Ded_P.Tax, Advance Deduction:Ded_Advance Deduction, Late Coming Deduction:Ded_Late Coming Deduction</textarea>
+        </div>
+
+        <!-- Right: Upload & Actions -->
+        <div class="col">
+            <h2>📤 Upload Employee Data</h2>
+            <input type="file" id="dataFile" accept=".xlsx, .csv, .xls">
+            <button id="generateBtn">🚀 Generate Payslips</button>
+            <div id="progress" class="progress" style="display:none;"><div id="progressBar" class="progress-bar">0%</div></div>
+            <div id="status" class="status"></div>
+            <div id="emailStatus"></div>
+            <button id="downloadZipBtn" style="display:none; margin-top:10px;">⬇️ Download All Payslips (ZIP)</button>
+        </div>
+    </div>
+
+    <div id="preview" style="margin-top:20px;"></div>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // Helper: parse mapping textarea to object {label: column}
+    // --------------------------------------------------------------
+    function parseMapping(text) {
+        const map = {};
+        const pairs = text.split(',');
+        for (let pair of pairs) {
+            let [label, col] = pair.split(':');
+            if (label && col) map[label.trim()] = col.trim();
+        }
+        return map;
+    }
+
+    // --------------------------------------------------------------
+    // Convert uploaded image to base64 dataURL (for PDF embedding)
+    // --------------------------------------------------------------
+    function imageToDataURL(file) {
+        return new Promise((resolve) => {
+            if (!file) { resolve(null); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // --------------------------------------------------------------
+    // Number to words (simple INR style)
+    // --------------------------------------------------------------
+    function numberToWordsINR(num) {
+        if (num === 0) return "Zero Rupees Only";
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        function convert(n) {
+            if (n === 0) return '';
+            if (n < 10) return ones[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+            if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convert(n % 100) : '');
+            if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+            if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
+            return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
+        }
+        let rupees = Math.floor(num);
+        let paise = Math.round((num - rupees) * 100);
+        let words = convert(rupees) + ' Rupees';
+        if (paise > 0) words += ' and ' + convert(paise) + ' Paise';
+        return words + ' Only';
+    }
+
+    // --------------------------------------------------------------
+    // Generate PDF payslip (using jsPDF)
+    // --------------------------------------------------------------
+    async function generatePDF(employee, month, year, logoDataURL, sigDataURL, stampDataURL, earnMap, dedMap) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageWidth = 210;
+        const margin = 15;
+        let y = margin;
+
+        // Logo
+        if (logoDataURL) {
+            try {
+                doc.addImage(logoDataURL, 'PNG', margin, y, 40, 20);
+            } catch(e) { console.warn(e); }
+        } else {
+            doc.setFontSize(20);
+            doc.setTextColor(44,62,80);
+            doc.text("ODRA", margin, y+10);
+        }
+        // Company name top right
+        doc.setFontSize(16);
+        doc.setTextColor(26,82,118);
+        doc.text("ODRA", pageWidth - margin, y+8, { align: 'right' });
+        doc.setFontSize(9);
+        doc.setTextColor(0,0,0);
+        doc.text("by Navya Sangam Kriti", pageWidth - margin, y+18, { align: 'right' });
+
+        y += 30;
+        // Title
+        doc.setFontSize(14);
+        doc.setTextColor(26,82,118);
+        const title = `PAYSLIP - ${month} ${year}`;
+        doc.text(title, pageWidth/2, y, { align: 'center' });
+        doc.line(margin, y+2, pageWidth-margin, y+2);
+        y += 12;
+
+        // Employee details box
+        doc.setFillColor(248,249,250);
+        doc.rect(margin, y, pageWidth-2*margin, 28, 'F');
+        doc.setFontSize(10);
+        doc.setTextColor(0,0,0);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Employee Name", margin+5, y+8);
+        doc.text("Department", margin+5, y+18);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`: ${employee['Employee Name'] || ''}`, margin+35, y+8);
+        doc.text(`: ${employee['Department'] || ''}`, margin+35, y+18);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Working Days", pageWidth/2 + 10, y+8);
+        doc.text("LOP Days", pageWidth/2 + 10, y+18);
+        doc.setFont('helvetica', 'normal');
+        const workingDays = parseFloat(employee['Working Days']) || 0;
+        const lop = parseFloat(employee['LOP']) || 0;
+        doc.text(`: ${workingDays}`, pageWidth/2 + 55, y+8);
+        doc.text(`: ${lop}`, pageWidth/2 + 55, y+18);
+        y += 32;
+
+        // Earnings & Deductions
+        const earnings = {};
+        const deductions = {};
+        for (let [label, col] of Object.entries(earnMap)) {
+            earnings[label] = parseFloat(employee[col]) || 0;
+        }
+        for (let [label, col] of Object.entries(dedMap)) {
+            deductions[label] = parseFloat(employee[col]) || 0;
+        }
+
+        const tableData = [['EARNINGS', 'AMOUNT (₹)', 'DEDUCTIONS', 'AMOUNT (₹)']];
+        const earnKeys = Object.keys(earnings);
+        const dedKeys = Object.keys(deductions);
+        const maxRows = Math.max(earnKeys.length, dedKeys.length);
+        for (let i = 0; i < maxRows; i++) {
+            let earnLabel = earnKeys[i] || '';
+            let earnVal = earnKeys[i] ? earnings[earnKeys[i]].toFixed(2) : '';
+            let dedLabel = dedKeys[i] || '';
+            let dedVal = dedKeys[i] ? deductions[dedKeys[i]].toFixed(2) : '';
+            tableData.push([earnLabel, earnVal, dedLabel, dedVal]);
+        }
+        const totalEarning = Object.values(earnings).reduce((a,b)=>a+b,0);
+        const totalDeduction = Object.values(deductions).reduce((a,b)=>a+b,0);
+        const netPay = totalEarning - totalDeduction;
+        tableData.push(['TOTAL', totalEarning.toFixed(2), 'TOTAL', totalDeduction.toFixed(2)]);
+
+        doc.autoTable({
+            startY: y,
+            head: [tableData[0]],
+            body: tableData.slice(1),
+            theme: 'grid',
+            styles: { fontSize: 9, cellPadding: 2, valign: 'middle', halign: 'center' },
+            headStyles: { fillColor: [26,82,118], textColor: 255, fontSize: 10 },
+            footStyles: { fillColor: [213,219,219], textColor: 0, fontStyle: 'bold' },
+            margin: { left: margin, right: margin },
+            columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 30 }, 2: { cellWidth: 45 }, 3: { cellWidth: 30 } }
+        });
+        y = doc.lastAutoTable.finalY + 10;
+
+        // Net Pay & Words
+        doc.setFontSize(11);
+        doc.setTextColor(26,82,118);
+        doc.text(`NET PAY: ₹ ${netPay.toFixed(2)}`, margin, y);
+        y += 6;
+        doc.setFontSize(9);
+        doc.setTextColor(0,0,0);
+        const words = numberToWordsINR(netPay);
+        doc.text(`In Words: ${words}`, margin, y);
+        y += 15;
+
+        // Signatures
+        doc.setFontSize(9);
+        doc.text("Employee Signature", margin, y);
+        doc.line(margin, y+5, margin+40, y+5);
+        doc.text("Authorized Signatory", pageWidth-margin-50, y, { align: 'right' });
+        doc.line(pageWidth-margin-50, y+5, pageWidth-margin, y+5);
+        if (sigDataURL) {
+            try {
+                doc.addImage(sigDataURL, 'PNG', pageWidth-margin-45, y-10, 30, 10);
+            } catch(e) {}
+        }
+        if (stampDataURL) {
+            try {
+                doc.addImage(stampDataURL, 'PNG', pageWidth-margin-55, y-5, 40, 30);
+            } catch(e) {}
+        }
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150,150,150);
+        doc.text("[This is a system-generated]", pageWidth/2, 280, { align: 'center' });
+        return doc.output('blob');
+    }
+
+    // --------------------------------------------------------------
+    // Main process
+    // --------------------------------------------------------------
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('dataFile');
+        if (!fileInput.files.length) {
+            document.getElementById('status').innerHTML = '<span class="error">Please upload an Excel/CSV file.</span>';
+            return;
+        }
+        const file = fileInput.files[0];
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearInput').value;
+        const earnMap = parseMapping(document.getElementById('earnMapping').value);
+        const dedMap = parseMapping(document.getElementById('dedMapping').value);
+
+        // Load images
+        const logoFile = document.getElementById('logoUpload').files[0];
+        const sigFile = document.getElementById('sigUpload').files[0];
+        const stampFile = document.getElementById('stampUpload').files[0];
+        const logoDataURL = logoFile ? await imageToDataURL(logoFile) : null;
+        const sigDataURL = sigFile ? await imageToDataURL(sigFile) : null;
+        const stampDataURL = stampFile ? await imageToDataURL(stampFile) : null;
+
+        // Parse Excel/CSV
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        if (!rows.length) {
+            document.getElementById('status').innerHTML = '<span class="error">No data rows found.</span>';
+            return;
+        }
+
+        // Check required columns
+        const requiredCols = ['Employee Name', 'Email', ...Object.values(earnMap), ...Object.values(dedMap)];
+        const missing = requiredCols.filter(col => !rows[0].hasOwnProperty(col));
+        if (missing.length) {
+            document.getElementById('status').innerHTML = `<span class="error">Missing columns: ${missing.join(', ')}</span>`;
+            return;
+        }
+
+        const zip = new JSZip();
+        const total = rows.length;
+        let processed = 0;
+        const progressDiv = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        progressDiv.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.innerText = '0%';
+        document.getElementById('status').innerHTML = 'Generating payslips...';
+
+        for (let emp of rows) {
+            const pdfBlob = await generatePDF(emp, month, year, logoDataURL, sigDataURL, stampDataURL, earnMap, dedMap);
+            const safeName = (emp['Employee Name'] || 'unknown').replace(/[^a-z0-9]/gi, '_');
+            const filename = `Payslip_${safeName}_${month}_${year}.pdf`;
+            zip.file(filename, pdfBlob);
+            processed++;
+            const percent = Math.round((processed/total)*100);
+            progressBar.style.width = percent+'%';
+            progressBar.innerText = percent+'%';
+            await new Promise(r => setTimeout(r, 10));
+        }
+        progressDiv.style.display = 'none';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const downloadBtn = document.getElementById('downloadZipBtn');
+        downloadBtn.style.display = 'block';
+        downloadBtn.onclick = () => saveAs(zipBlob, `Payslips_${month}_${year}.zip`);
+        document.getElementById('status').innerHTML = `<span class="success">✅ ${total} payslips generated. Click below to download ZIP.</span>`;
+    });
+</script>
+</body>
+</html>
