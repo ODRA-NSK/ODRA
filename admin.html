@@ -20,6 +20,7 @@
         input, select, button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
         button { background: #2c3e50; color: white; cursor: pointer; border: none; }
         button.danger { background: #e74c3c; }
+        button.all-access { background: #27ae60; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #2c3e50; color: white; }
@@ -28,6 +29,8 @@
         .subtab-group { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; }
         .log-entry { font-family: monospace; font-size: 0.9em; }
         .log-controls { margin-bottom: 10px; }
+        .empty-msg { color: #6c757d; font-style: italic; padding: 10px; }
+        .all-access-badge { background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; display: inline-block; }
     </style>
 </head>
 <body>
@@ -46,27 +49,15 @@
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "admin123";
 
-    // Default structure
-    const defaultDepartments = {
-        "Sales": ["Overview", "Monthly Target", "Achievements"],
-        "IT": ["Projects", "Tickets", "Infrastructure"],
-        "HR": ["Attendance", "Leaves", "Recruitment"]
-    };
-    const defaultEmployees = [
-        { name: "Alice Sharma", password: "alice123", 
-          permissions: { "Sales": ["Overview", "Monthly Target"] } },
-        { name: "Bob Kumar", password: "bob456", 
-          permissions: { "IT": ["Projects", "Tickets"] } },
-        { name: "Charlie Lee", password: "charlie789", 
-          permissions: { "HR": ["Attendance", "Leaves"] } }
-    ];
+    // ---------- EMPTY INITIAL DATA ----------
+    const emptyDepartments = {};
+    const emptyEmployees = [];
 
     // ---------- LOGGING SYSTEM ----------
     function getLogs() {
         return JSON.parse(localStorage.getItem("adminLogs")) || [];
     }
     function saveLogs(logs) {
-        // Keep only last 200 entries to avoid bloating
         if (logs.length > 200) logs = logs.slice(-200);
         localStorage.setItem("adminLogs", JSON.stringify(logs));
     }
@@ -76,10 +67,9 @@
             timestamp: new Date().toISOString(),
             action: action,
             details: details,
-            admin: "admin" // we can hardcode since only admin logs in
+            admin: "admin"
         });
         saveLogs(logs);
-        // If the log panel is currently visible, refresh it
         const logContainer = document.getElementById("logDisplayArea");
         if (logContainer) renderLogs();
     }
@@ -92,14 +82,17 @@
                     <table style="width:100%">
                         <thead><tr><th>Timestamp</th><th>Action</th><th>Details</th></tr></thead>
                         <tbody>`;
-        logs.slice().reverse().forEach(log => {
-            html += `<tr class="log-entry">
-                        <td>${new Date(log.timestamp).toLocaleString()}</td>
-                        <td>${escapeHtml(log.action)}</td>
-                        <td>${escapeHtml(log.details)}</td>
-                     </tr>`;
-        });
-        if (logs.length === 0) html += `<tr><td colspan="3">No logs yet.</td></tr>`;
+        if (logs.length === 0) {
+            html += `<tr><td colspan="3" class="empty-msg">No logs yet. Actions will appear here.</td></tr>`;
+        } else {
+            logs.slice().reverse().forEach(log => {
+                html += `<tr class="log-entry">
+                            <td>${new Date(log.timestamp).toLocaleString()}</td>
+                            <td>${escapeHtml(log.action)}</td>
+                            <td>${escapeHtml(log.details)}</td>
+                          </tr>`;
+            });
+        }
         html += `</tbody></table>`;
         const logArea = document.getElementById("logDisplayArea");
         if (logArea) logArea.innerHTML = html;
@@ -131,13 +124,13 @@
         });
     }
 
-    // ---------- INIT DATA ----------
+    // ---------- INITIALIZE EMPTY DATA ----------
     function initData() {
         if (!localStorage.getItem("departments")) {
-            localStorage.setItem("departments", JSON.stringify(defaultDepartments));
+            localStorage.setItem("departments", JSON.stringify(emptyDepartments));
         }
         if (!localStorage.getItem("employees")) {
-            localStorage.setItem("employees", JSON.stringify(defaultEmployees));
+            localStorage.setItem("employees", JSON.stringify(emptyEmployees));
         }
         if (!localStorage.getItem("adminLogs")) {
             localStorage.setItem("adminLogs", JSON.stringify([]));
@@ -176,71 +169,102 @@
         const employees = JSON.parse(localStorage.getItem("employees"));
         const allDepts = Object.keys(departments);
 
-        // Manage Departments & Sub-tabs
+        // ---- Manage Departments & Sub-tabs ----
         let deptHtml = `<h3>📁 Manage Departments & Sub‑tabs</h3>`;
-        for (let dept of allDepts) {
-            let subtabs = departments[dept];
-            deptHtml += `<div class="subtab-group" id="deptGroup-${dept}">
-                <strong>${dept}</strong>
-                <div>Sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
-                <input type="text" id="newSubtab-${dept}" placeholder="New subtab name">
-                <button onclick="addSubtab('${dept}')">+ Add Subtab</button>
-                <button onclick="removeSubtab('${dept}')">- Remove Last</button>
-            </div>`;
+        if (allDepts.length === 0) {
+            deptHtml += `<div class="empty-msg">No departments yet. Use the form below to create your first department.</div>`;
+        } else {
+            for (let dept of allDepts) {
+                let subtabs = departments[dept];
+                deptHtml += `<div class="subtab-group" id="deptGroup-${dept}">
+                    <strong>${dept}</strong>
+                    <div>Sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
+                    <input type="text" id="newSubtab-${dept}" placeholder="New subtab name">
+                    <button onclick="addSubtab('${dept}')">+ Add Subtab</button>
+                    <button onclick="removeSubtab('${dept}')">- Remove Last</button>
+                </div>`;
+            }
         }
         deptHtml += `<div style="margin-top:15px;">
-            <input type="text" id="newDeptName" placeholder="New department name">
-            <button onclick="addDepartment()">➕ Add Department (auto)</button>
+            <input type="text" id="newDeptName" placeholder="New department name (e.g., Marketing, Finance)">
+            <button onclick="addDepartment()">➕ Add Department</button>
         </div>`;
 
-        // Add Employee Form
-        let addEmpForm = `<div class="card"><h2>➕ Add New Employee</h2>
-            <input type="text" id="newName" placeholder="Full Name">
-            <input type="text" id="newPass" placeholder="Password">
-            <div>Select departments & sub‑tabs (Ctrl+click for multiple):</div>`;
-        for (let dept of allDepts) {
-            addEmpForm += `<div><strong>${dept}</strong>
-                <select multiple id="newPerm-${dept}" style="width:200px; height:80px;">
-                    ${departments[dept].map(sub => `<option value="${sub}">${sub}</option>`).join('')}
-                </select>
-            </div>`;
-        }
-        addEmpForm += `<button onclick="addEmployee()">Add Employee</button><div id="addMsg"></div></div>`;
-
-        // Employee List with inline permission editing
-        let empRows = "";
-        employees.forEach((emp, idx) => {
-            let permHtml = "";
+        // ---- Add Employee Form (with All Access checkbox) ----
+        let addEmpForm = `<div class="card"><h2>➕ Add New Employee</h2>`;
+        if (allDepts.length === 0) {
+            addEmpForm += `<div class="empty-msg">You need to create at least one department before adding employees.</div>`;
+        } else {
+            addEmpForm += `
+                <input type="text" id="newName" placeholder="Full Name">
+                <input type="text" id="newPass" placeholder="Password">
+                <label style="display:block; margin:10px 0;">
+                    <input type="checkbox" id="newAllAccess"> 🚀 Grant All Access (all departments & all sub-tabs)
+                </label>
+                <div id="deptSelectArea" style="margin-top:10px;">
+                    <div>Or select specific departments & sub‑tabs (Ctrl+click for multiple):</div>`;
             for (let dept of allDepts) {
-                let currentSubs = emp.permissions[dept] || [];
-                let subtabs = departments[dept];
-                permHtml += `<div><strong>${dept}</strong>: 
-                    <select multiple id="perm-${idx}-${dept}" style="width:200px; height:80px;">`;
-                subtabs.forEach(sub => {
-                    let selected = currentSubs.includes(sub) ? "selected" : "";
-                    permHtml += `<option value="${sub}" ${selected}>${sub}</option>`;
-                });
-                permHtml += `</select></div>`;
+                addEmpForm += `<div><strong>${dept}</strong>
+                    <select multiple id="newPerm-${dept}" style="width:200px; height:80px;">
+                        ${departments[dept].map(sub => `<option value="${sub}">${sub}</option>`).join('')}
+                    </select>
+                </div>`;
             }
-            empRows += `
-                <tr id="empRow-${idx}">
-                    <td>${emp.name}</td>
-                    <td>${Object.keys(emp.permissions).join(", ")}</td>
-                    <td>
-                        <button onclick="editPermissions(${idx})">✏️ Edit Permissions</button>
-                        <button onclick="resetPassword(${idx})">Reset Password</button>
-                        <button class="danger" onclick="deleteEmployee(${idx})">Delete</button>
-                    </td>
-                 </tr>
-                <tr id="permRow-${idx}" style="display:none;">
-                    <td colspan="3">
-                        <div id="permEdit-${idx}">${permHtml}</div>
-                        <button onclick="savePermissions(${idx})">Save Permissions</button>
-                        <button onclick="cancelEdit(${idx})">Cancel</button>
-                    </td>
-                 </tr>
-            `;
-        });
+            addEmpForm += `</div><button onclick="addEmployee()">Add Employee</button><div id="addMsg"></div>`;
+        }
+        addEmpForm += `</div>`;
+
+        // ---- Employee List ----
+        let empTableHtml = `<div class="card"><h2>📋 Employee List & Permissions</h2>`;
+        if (employees.length === 0) {
+            empTableHtml += `<div class="empty-msg">No employees added yet. Use the form above to add.</div>`;
+        } else {
+            let empRows = "";
+            employees.forEach((emp, idx) => {
+                const hasAllAccess = emp.allAccess === true;
+                const permissionsDisplay = hasAllAccess ? '<span class="all-access-badge">ALL ACCESS</span>' : (Object.keys(emp.permissions).join(", ") || "None");
+                let permHtml = "";
+                if (!hasAllAccess) {
+                    for (let dept of allDepts) {
+                        let currentSubs = emp.permissions[dept] || [];
+                        let subtabs = departments[dept] || [];
+                        permHtml += `<div><strong>${dept}</strong>: 
+                            <select multiple id="perm-${idx}-${dept}" style="width:200px; height:80px;">`;
+                        subtabs.forEach(sub => {
+                            let selected = currentSubs.includes(sub) ? "selected" : "";
+                            permHtml += `<option value="${sub}" ${selected}>${sub}</option>`;
+                        });
+                        permHtml += `</select></div>`;
+                    }
+                } else {
+                    permHtml = `<div class="empty-msg">All Access enabled – employee sees every department and sub‑tab.</div>`;
+                }
+                empRows += `
+                    <tr id="empRow-${idx}">
+                        <td>${emp.name}${hasAllAccess ? ' <span class="all-access-badge">ALL</span>' : ''}</td>
+                        <td>${permissionsDisplay}</td>
+                        <td>
+                            ${!hasAllAccess ? `<button onclick="grantAllAccess(${idx})" class="all-access">🌟 Grant All Access</button>` : ''}
+                            <button onclick="editPermissions(${idx})">✏️ Edit Permissions</button>
+                            <button onclick="resetPassword(${idx})">Reset Password</button>
+                            <button class="danger" onclick="deleteEmployee(${idx})">Delete</button>
+                        </td>
+                     </tr>
+                    <tr id="permRow-${idx}" style="display:none;">
+                        <td colspan="3">
+                            <div id="permEdit-${idx}">${permHtml}</div>
+                            <button onclick="savePermissions(${idx})">Save Permissions</button>
+                            <button onclick="cancelEdit(${idx})">Cancel</button>
+                            ${hasAllAccess ? '<br><small>All Access enabled – no specific permissions to edit.</small>' : ''}
+                        </td>
+                     </tr>
+                `;
+            });
+            empTableHtml += `
+                <table><thead><tr><th>Name</th><th>Access</th><th>Actions</th></tr></thead>
+                <tbody>${empRows}</tbody></table>`;
+        }
+        empTableHtml += `</div>`;
 
         // Activity Logs section
         const logsHtml = `<div class="card">
@@ -251,18 +275,27 @@
         const finalHtml = `
             <div class="card">${deptHtml}</div>
             ${addEmpForm}
-            <div class="card">
-                <h2>📋 Employee List & Permissions</h2>
-                <table><thead><tr><th>Name</th><th>Departments</th><th>Actions</th></tr></thead>
-                <tbody>${empRows}</tbody></table>
-            </div>
+            ${empTableHtml}
             ${logsHtml}
         `;
         document.getElementById("adminContainer").innerHTML = finalHtml;
-        renderLogs(); // display logs
+        renderLogs();
     }
 
-    // ---- Department & Subtab Management with Logging ----
+    // ---- Grant All Access to existing employee ----
+    function grantAllAccess(idx) {
+        if (confirm("Grant ALL ACCESS to this employee? They will see every department and all sub-tabs.")) {
+            let employees = JSON.parse(localStorage.getItem("employees"));
+            let empName = employees[idx].name;
+            employees[idx].allAccess = true;
+            employees[idx].permissions = {}; // clear specific permissions
+            localStorage.setItem("employees", JSON.stringify(employees));
+            addLog("Grant All Access", `Granted all access to employee "${empName}".`);
+            renderAdminPanel();
+        }
+    }
+
+    // ---- Department & Subtab Management ----
     function addDepartment() {
         let newDept = document.getElementById("newDeptName").value.trim();
         if (!newDept) return;
@@ -299,21 +332,28 @@
         }
     }
 
-    // ---- Employee Management with Logging ----
+    // ---- Employee Management ----
     function addEmployee() {
         const name = document.getElementById("newName").value.trim();
         const pass = document.getElementById("newPass").value.trim();
+        const allAccess = document.getElementById("newAllAccess")?.checked || false;
         const departments = JSON.parse(localStorage.getItem("departments"));
         let permissions = {};
-        for (let dept of Object.keys(departments)) {
-            let select = document.getElementById(`newPerm-${dept}`);
-            if (select) {
-                let selected = Array.from(select.selectedOptions).map(opt => opt.value);
-                if (selected.length > 0) permissions[dept] = selected;
+        if (!allAccess) {
+            for (let dept of Object.keys(departments)) {
+                let select = document.getElementById(`newPerm-${dept}`);
+                if (select) {
+                    let selected = Array.from(select.selectedOptions).map(opt => opt.value);
+                    if (selected.length > 0) permissions[dept] = selected;
+                }
             }
         }
-        if (!name || !pass || Object.keys(permissions).length === 0) {
-            document.getElementById("addMsg").innerText = "Name, password and at least one permission required";
+        if (!name || !pass) {
+            document.getElementById("addMsg").innerText = "Name and password required";
+            return;
+        }
+        if (!allAccess && Object.keys(permissions).length === 0) {
+            document.getElementById("addMsg").innerText = "Either grant All Access or select at least one permission";
             return;
         }
         let employees = JSON.parse(localStorage.getItem("employees"));
@@ -321,9 +361,15 @@
             document.getElementById("addMsg").innerText = "Employee already exists";
             return;
         }
-        employees.push({ name, password: pass, permissions });
+        let newEmp = { name, password: pass };
+        if (allAccess) {
+            newEmp.allAccess = true;
+        } else {
+            newEmp.permissions = permissions;
+        }
+        employees.push(newEmp);
         localStorage.setItem("employees", JSON.stringify(employees));
-        addLog("Add Employee", `Added employee "${name}" with permissions: ${JSON.stringify(permissions)}`);
+        addLog("Add Employee", `Added employee "${name}"${allAccess ? " with ALL ACCESS" : " with specific permissions"}`);
         document.getElementById("addMsg").innerHTML = '<span class="success">Added successfully</span>';
         renderAdminPanel();
     }
@@ -337,6 +383,11 @@
     function savePermissions(idx) {
         let employees = JSON.parse(localStorage.getItem("employees"));
         let emp = employees[idx];
+        if (emp.allAccess) {
+            alert("All Access employee – no specific permissions to edit.");
+            cancelEdit(idx);
+            return;
+        }
         let departments = JSON.parse(localStorage.getItem("departments"));
         let newPerms = {};
         for (let dept of Object.keys(departments)) {
