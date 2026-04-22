@@ -20,18 +20,13 @@
         .nav-menu a:hover { background-color: #e9ecef; }
         .container { max-width: 1000px; margin: 30px auto; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input, button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
-        button { background: #2c3e50; color: white; cursor: pointer; border: none; }
+        button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
-        .dept-selector, .subtab-selector { margin: 15px 0; }
-        .dept-btn, .subtab-btn { background: #e9ecef; color: #2c3e50; margin-right: 10px; }
+        .dept-btn, .subtab-btn { background: #e9ecef; color: #2c3e50; margin-right: 10px; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
         .dept-btn.active, .subtab-btn.active { background: #2c3e50; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #2c3e50; color: white; }
         .error { color: red; }
         .success { color: green; }
-        .all-access-badge { background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px; }
+        .empty-msg { color: #6c757d; font-style: italic; padding: 10px; }
     </style>
 </head>
 <body>
@@ -50,13 +45,6 @@
 <div class="container" id="appContainer"></div>
 
 <script>
-    // Sample content for each subtab (edit as needed)
-    const subtabContent = {     "HR": {         "Payslip": `<iframe src="payslip.html" style="width:100%; height:700px; border:none;"></iframe>`     } };
-        // You will populate this as you create departments/subtabs
-        // Example:
-        // "Sales": { "Overview": "Sales data...", "Targets": "Targets..." }
-    };
-
     function getDepartments() {
         return JSON.parse(localStorage.getItem("departments")) || {};
     }
@@ -64,7 +52,7 @@
         return JSON.parse(localStorage.getItem("employees")) || [];
     }
 
-    let currentEmployee = null; // { name, allAccess?, permissions? }
+    let currentEmployee = null;
 
     function renderLogin() {
         document.getElementById("appContainer").innerHTML = `
@@ -107,13 +95,11 @@
             accessibleDepts = allDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
         }
 
-        let html = `
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2>Welcome, ${currentEmployee.name} ${currentEmployee.allAccess ? '<span class="all-access-badge">ALL ACCESS</span>' : ''}</h2>
-                    <button onclick="showChangePassword()">Change Password</button>
-                </div>
-        `;
+        let html = `<div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>Welcome, ${currentEmployee.name}</h2>
+                <button onclick="showChangePassword()">Change Password</button>
+            </div>`;
         if (accessibleDepts.length === 0) {
             html += `<p class="empty-msg">You have no department access. Please contact admin.</p>`;
         } else {
@@ -130,10 +116,6 @@
     }
 
     function selectDept(deptName) {
-        currentDept = deptName;
-        document.querySelectorAll('.dept-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.innerText === deptName);
-        });
         const departments = getDepartments();
         const allSubs = departments[deptName] || [];
         let allowedSubs = [];
@@ -143,7 +125,7 @@
             allowedSubs = currentEmployee.permissions[deptName] || [];
         }
         if (allowedSubs.length === 0) {
-            document.getElementById("subtabArea").innerHTML = "<p>You have no access to any subtab in this department.</p>";
+            document.getElementById("subtabArea").innerHTML = "<p class='empty-msg'>You have no access to any subtab in this department.</p>";
             return;
         }
         let subHtml = `<div class="subtab-selector">`;
@@ -156,11 +138,19 @@
     }
 
     function selectSubtab(dept, subtab) {
+        let content;
+        // Check if this is the Payslip subtab
+        if (subtab === "Payslip") {
+            content = `<iframe src="payslip.html" style="width:100%; height:700px; border:none; border-radius:8px;"></iframe>`;
+        } else {
+            content = `<div class="card"><p>Content for ${subtab} will appear here.</p></div>`;
+        }
+        document.getElementById("subtabContent").innerHTML = content;
+        // Highlight active subtab
         document.querySelectorAll('.subtab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.innerText === subtab);
+            if (btn.innerText === subtab) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
-        let content = subtabContent[dept]?.[subtab] || "No content defined for this subtab yet. Admin can edit subtabContent in dept.html.";
-        document.getElementById("subtabContent").innerHTML = `<div class="card"><h3>${subtab}</h3><p>${content}</p></div>`;
     }
 
     function showChangePassword() {
@@ -203,7 +193,6 @@
         renderLogin();
     }
 
-    // On load, check existing session
     window.onload = () => {
         const stored = sessionStorage.getItem("loggedInEmp");
         if (stored) {
