@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODRA – Management Information System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Header styling */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-bottom: 2px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+
+        /* Left: Logo */
+        .logo img {
+            height: 60px;      /* adjust size as needed */
+            width: auto;
+            display: block;
+        }
+
+        /* Centre: Title & Subtitle */
+        .title-section {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .company-name {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Right side (empty for now, but keeps layout balanced) */
+        .right-placeholder {
+            width: 60px; /* same as logo width to balance */
+        }
+
+        /* Responsive: stack on small screens */
+        @media (max-width: 700px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .logo {
+                margin-bottom: 10px;
+            }
+            .right-placeholder {
+                display: none;
+            }
+        }
+
+        /* Example page content */
+        .content {
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        p {
+            line-height: 1.6;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== HEADER (same on every page) ========== -->
+<div class="header">
+    <div class="logo">
+        <img src="logo1.jpg" alt="ODRA Logo">
+    </div>
+    <div class="title-section">
+        <div class="company-name">Odra by Navya Sangam Kriti</div>
+        <div class="subtitle">Management Information System</div>
+    </div>
+    <div class="right-placeholder"></div> <!-- keeps title centered -->
+</div>
+
+<!-- ========== YOUR PAGE CONTENT GOES HERE ========== -->
+<div class="content">
+    <h1>Welcome to ODRA</h1>
+    <p>This is your Management Information System. You can replace this text with your own content, forms, reports, or dashboards.</p>
+    <p>To add more pages, copy the same header code into each new HTML file.</p>
+</div>
+
+</body>
+</html>
