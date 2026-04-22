@@ -139,9 +139,9 @@
 
     function selectSubtab(dept, subtab) {
         let content;
-        // Check if this is the Payslip subtab
+        // For "Payslip" subtab, open a link that loads payslip.html in a new tab
         if (subtab === "Payslip") {
-            content = `<iframe src="payslip.html" style="width:100%; height:700px; border:none; border-radius:8px;"></iframe>`;
+            content = `<a href="payslip.html" target="_blank" style="display:inline-block; background:#2c3e50; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold;">🧾 Open Payslip Generator</a>`;
         } else {
             content = `<div class="card"><p>Content for ${subtab} will appear here.</p></div>`;
         }
@@ -193,6 +193,7 @@
         renderLogin();
     }
 
+    // On page load, check if already logged in (sessionStorage persists)
     window.onload = () => {
         const stored = sessionStorage.getItem("loggedInEmp");
         if (stored) {
