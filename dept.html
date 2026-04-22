@@ -23,16 +23,26 @@
         button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
         
+        /* Department buttons – horizontal scrollable row */
+        .dept-selector {
+            display: flex;
+            flex-direction: row;
+            overflow-x: auto;
+            white-space: nowrap;
+            gap: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
         .dept-btn {
             background: #e9ecef;
             color: #2c3e50;
-            margin-right: 10px;
             border: none;
             padding: 10px 20px;
             border-radius: 30px;
             cursor: pointer;
             font-weight: bold;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         .dept-btn.active {
             background: #2c3e50;
@@ -43,15 +53,25 @@
             background: #d4d9e0;
         }
         
+        /* Subtab buttons – also horizontal scrollable */
+        .subtab-selector {
+            display: flex;
+            flex-direction: row;
+            overflow-x: auto;
+            white-space: nowrap;
+            gap: 10px;
+            padding-bottom: 10px;
+            margin-top: 15px;
+        }
         .subtab-btn {
             background: #e9ecef;
             color: #2c3e50;
-            margin-right: 10px;
             border: none;
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         .subtab-btn.active {
             background: #1a5276;
@@ -97,7 +117,7 @@
     }
 
     let currentEmployee = null;
-    let currentDept = null;   // track selected department
+    let currentDept = null;
 
     function renderLogin() {
         document.getElementById("appContainer").innerHTML = `
@@ -154,7 +174,6 @@
         }
         html += `<button class="secondary" onclick="logout()">Logout</button></div>`;
         document.getElementById("appContainer").innerHTML = html;
-        // If there was a previously selected department, re-select it (optional)
         if (currentDept && accessibleDepts.includes(currentDept)) {
             selectDept(currentDept);
         } else if (accessibleDepts.length > 0) {
@@ -180,13 +199,10 @@
         });
         subHtml += `</div><div id="subtabContent"></div>`;
         document.getElementById("subtabArea").innerHTML = subHtml;
-        
-        // Clear any previous content – do NOT auto-select any subtab
         document.getElementById("subtabContent").innerHTML = `<div class="content-placeholder">
             <p>Select a subtab above to view content.</p>
         </div>`;
         
-        // Highlight the active department button
         document.querySelectorAll('.dept-btn').forEach(btn => {
             if (btn.innerText === deptName) btn.classList.add('active');
             else btn.classList.remove('active');
@@ -195,15 +211,12 @@
 
     function selectSubtab(dept, subtab) {
         let contentHtml = "";
-        // Special handling for Payslip subtab
         if (subtab === "Payslip") {
-            // Open the external app in a new tab
             window.open("http://192.168.1.216:8501/", "_blank");
             contentHtml = `<div class="content-placeholder">
                 <p>✅ Payslip generator opened in a new tab. If it didn't open, <a href="http://192.168.1.216:8501/" target="_blank">click here</a>.</p>
             </div>`;
         } else {
-            // Generic placeholder for any other subtab (Reports, Attendance, etc.)
             contentHtml = `<div class="content-placeholder">
                 <h3>${subtab}</h3>
                 <p>Content for <strong>${subtab}</strong> under <strong>${dept}</strong> will be displayed here.</p>
@@ -211,7 +224,6 @@
             </div>`;
         }
         document.getElementById("subtabContent").innerHTML = contentHtml;
-        // Highlight active subtab button
         document.querySelectorAll('.subtab-btn').forEach(btn => {
             if (btn.innerText === subtab) btn.classList.add('active');
             else btn.classList.remove('active');
