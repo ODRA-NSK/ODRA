@@ -22,8 +22,47 @@
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
-        .dept-btn, .subtab-btn { background: #e9ecef; color: #2c3e50; margin-right: 10px; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
-        .dept-btn.active, .subtab-btn.active { background: #2c3e50; color: white; }
+        
+        /* Department buttons – logo theme colors */
+        .dept-btn {
+            background: #e9ecef;
+            color: #2c3e50;
+            margin-right: 10px;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .dept-btn.active {
+            background: #2c3e50;      /* logo dark blue */
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .dept-btn:hover:not(.active) {
+            background: #d4d9e0;
+        }
+        
+        /* Subtab buttons – softer theme */
+        .subtab-btn {
+            background: #e9ecef;
+            color: #2c3e50;
+            margin-right: 10px;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .subtab-btn.active {
+            background: #1a5276;      /* slightly darker for active subtab */
+            color: white;
+        }
+        .subtab-btn:hover:not(.active) {
+            background: #d4d9e0;
+        }
+        
         .error { color: red; }
         .success { color: green; }
         .empty-msg { color: #6c757d; font-style: italic; padding: 10px; }
@@ -139,7 +178,6 @@
 
     function selectSubtab(dept, subtab) {
         let content;
-        // For "Payslip" subtab, open a link that loads payslip.html in a new tab
         if (subtab === "Payslip") {
             content = `<a href="payslip.html" target="_blank" style="display:inline-block; background:#2c3e50; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold;">🧾 Open Payslip Generator</a>`;
         } else {
@@ -193,7 +231,6 @@
         renderLogin();
     }
 
-    // On page load, check if already logged in (sessionStorage persists)
     window.onload = () => {
         const stored = sessionStorage.getItem("loggedInEmp");
         if (stored) {
