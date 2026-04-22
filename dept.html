@@ -23,7 +23,6 @@
         button { padding: 8px 12px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; background: #2c3e50; color: white; cursor: pointer; }
         button.secondary { background: #6c757d; }
         
-        /* Department buttons – logo theme */
         .dept-btn {
             background: #e9ecef;
             color: #2c3e50;
@@ -44,25 +43,34 @@
             background: #d4d9e0;
         }
         
-        /* Subtab buttons – only Payslip will be visible */
         .subtab-btn {
-            background: #2c3e50;
-            color: white;
+            background: #e9ecef;
+            color: #2c3e50;
             margin-right: 10px;
             border: none;
-            padding: 10px 20px;
-            border-radius: 30px;
+            padding: 8px 16px;
+            border-radius: 20px;
             cursor: pointer;
-            font-weight: bold;
             transition: all 0.2s;
         }
-        .subtab-btn:hover {
+        .subtab-btn.active {
             background: #1a5276;
+            color: white;
+        }
+        .subtab-btn:hover:not(.active) {
+            background: #d4d9e0;
         }
         
         .error { color: red; }
         .success { color: green; }
         .empty-msg { color: #6c757d; font-style: italic; padding: 10px; }
+        .content-placeholder {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #2c3e50;
+        }
     </style>
 </head>
 <body>
@@ -124,18 +132,10 @@
     function renderEmployeePanel() {
         const departments = getDepartments();
         const allDepts = Object.keys(departments);
-        // Sort departments to put "HR" first if it exists
-        const sortedDepts = allDepts.sort((a,b) => {
-            if (a === "HR") return -1;
-            if (b === "HR") return 1;
-            return a.localeCompare(b);
-        });
-        let accessibleDepts = [];
-        if (currentEmployee.allAccess) {
-            accessibleDepts = sortedDepts;
-        } else {
-            accessibleDepts = sortedDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
-        }
+        // Optional: put HR first if you want, but any order works
+        const accessibleDepts = currentEmployee.allAccess 
+            ? allDepts 
+            : allDepts.filter(dept => currentEmployee.permissions[dept] && currentEmployee.permissions[dept].length > 0);
 
         let html = `<div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -160,37 +160,47 @@
     function selectDept(deptName) {
         const departments = getDepartments();
         const allSubs = departments[deptName] || [];
-        let allowedSubs = [];
-        if (currentEmployee.allAccess) {
-            allowedSubs = allSubs;
-        } else {
-            allowedSubs = currentEmployee.permissions[deptName] || [];
-        }
-        // Filter to only show "Payslip" subtab if it exists
-        const payslipOnly = allowedSubs.filter(sub => sub === "Payslip");
-        if (payslipOnly.length === 0) {
-            document.getElementById("subtabArea").innerHTML = "<p class='empty-msg'>No Payslip access for this department.</p>";
+        let allowedSubs = currentEmployee.allAccess 
+            ? allSubs 
+            : (currentEmployee.permissions[deptName] || []);
+        
+        if (allowedSubs.length === 0) {
+            document.getElementById("subtabArea").innerHTML = "<p class='empty-msg'>You have no access to any subtab in this department.</p>";
             return;
         }
         let subHtml = `<div class="subtab-selector">`;
-        payslipOnly.forEach(sub => {
+        allowedSubs.forEach(sub => {
             subHtml += `<button class="subtab-btn" onclick="selectSubtab('${deptName}', '${sub}')">${sub}</button>`;
         });
         subHtml += `</div><div id="subtabContent"></div>`;
         document.getElementById("subtabArea").innerHTML = subHtml;
-        selectSubtab(deptName, payslipOnly[0]);
+        // Automatically select the first subtab
+        selectSubtab(deptName, allowedSubs[0]);
     }
 
     function selectSubtab(dept, subtab) {
-        // Directly open the payslip app in a new tab
+        let contentHtml = "";
+        // Special handling for Payslip subtab
         if (subtab === "Payslip") {
-            // Open your local Streamlit URL in a new tab
+            // Open the external app in a new tab
             window.open("http://192.168.1.216:8501/", "_blank");
-            // Also show a message in the current page
-            document.getElementById("subtabContent").innerHTML = `<div class="card"><p>✅ Payslip generator opened in a new tab. If it didn't open, <a href="http://192.168.1.216:8501/" target="_blank">click here</a>.</p></div>`;
+            contentHtml = `<div class="content-placeholder">
+                <p>✅ Payslip generator opened in a new tab. If it didn't open, <a href="http://192.168.1.216:8501/" target="_blank">click here</a>.</p>
+            </div>`;
         } else {
-            document.getElementById("subtabContent").innerHTML = `<div class="card"><p>Content for ${subtab} will appear here.</p></div>`;
+            // Generic placeholder for any other subtab (Reports, Attendance, etc.)
+            contentHtml = `<div class="content-placeholder">
+                <h3>${subtab}</h3>
+                <p>Content for <strong>${subtab}</strong> under <strong>${dept}</strong> will be displayed here.</p>
+                <p>You can replace this placeholder with actual data (tables, reports, etc.) later.</p>
+            </div>`;
         }
+        document.getElementById("subtabContent").innerHTML = contentHtml;
+        // Highlight active subtab button
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            if (btn.innerText === subtab) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
     }
 
     function showChangePassword() {
