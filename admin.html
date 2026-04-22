@@ -26,6 +26,8 @@
         .error { color: red; }
         .success { color: green; }
         .subtab-group { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .log-entry { font-family: monospace; font-size: 0.9em; }
+        .log-controls { margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -44,30 +46,101 @@
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "admin123";
 
-    // Default structure: departments with sub-tabs, and employees with per-department subtab permissions
+    // Default structure
     const defaultDepartments = {
         "Sales": ["Overview", "Monthly Target", "Achievements"],
         "IT": ["Projects", "Tickets", "Infrastructure"],
         "HR": ["Attendance", "Leaves", "Recruitment"]
     };
-
     const defaultEmployees = [
         { name: "Alice Sharma", password: "alice123", 
           permissions: { "Sales": ["Overview", "Monthly Target"] } },
         { name: "Bob Kumar", password: "bob456", 
           permissions: { "IT": ["Projects", "Tickets"] } },
         { name: "Charlie Lee", password: "charlie789", 
-          permissions: { "HR": ["Attendance", "Leaves"] } },
-        { name: "David Wilson", password: "david2025", 
-          permissions: { "Sales": ["Overview", "Monthly Target", "Achievements"], "IT": ["Projects"] } }
+          permissions: { "HR": ["Attendance", "Leaves"] } }
     ];
 
+    // ---------- LOGGING SYSTEM ----------
+    function getLogs() {
+        return JSON.parse(localStorage.getItem("adminLogs")) || [];
+    }
+    function saveLogs(logs) {
+        // Keep only last 200 entries to avoid bloating
+        if (logs.length > 200) logs = logs.slice(-200);
+        localStorage.setItem("adminLogs", JSON.stringify(logs));
+    }
+    function addLog(action, details) {
+        let logs = getLogs();
+        logs.push({
+            timestamp: new Date().toISOString(),
+            action: action,
+            details: details,
+            admin: "admin" // we can hardcode since only admin logs in
+        });
+        saveLogs(logs);
+        // If the log panel is currently visible, refresh it
+        const logContainer = document.getElementById("logDisplayArea");
+        if (logContainer) renderLogs();
+    }
+    function renderLogs() {
+        const logs = getLogs();
+        let html = `<div class="log-controls">
+                        <button onclick="exportLogs()">📥 Export Logs (JSON)</button>
+                        <button onclick="clearLogs()" class="danger">🗑 Clear All Logs</button>
+                    </div>
+                    <table style="width:100%">
+                        <thead><tr><th>Timestamp</th><th>Action</th><th>Details</th></tr></thead>
+                        <tbody>`;
+        logs.slice().reverse().forEach(log => {
+            html += `<tr class="log-entry">
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${escapeHtml(log.action)}</td>
+                        <td>${escapeHtml(log.details)}</td>
+                     </tr>`;
+        });
+        if (logs.length === 0) html += `<tr><td colspan="3">No logs yet.</td></tr>`;
+        html += `</tbody></table>`;
+        const logArea = document.getElementById("logDisplayArea");
+        if (logArea) logArea.innerHTML = html;
+    }
+    function exportLogs() {
+        const logs = getLogs();
+        const dataStr = JSON.stringify(logs, null, 2);
+        const blob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `odra_admin_logs_${new Date().toISOString().slice(0,19)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    function clearLogs() {
+        if (confirm("Delete all activity logs?")) {
+            localStorage.setItem("adminLogs", JSON.stringify([]));
+            renderLogs();
+            addLog("Cleared logs", "All activity logs were cleared.");
+        }
+    }
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ---------- INIT DATA ----------
     function initData() {
         if (!localStorage.getItem("departments")) {
             localStorage.setItem("departments", JSON.stringify(defaultDepartments));
         }
         if (!localStorage.getItem("employees")) {
             localStorage.setItem("employees", JSON.stringify(defaultEmployees));
+        }
+        if (!localStorage.getItem("adminLogs")) {
+            localStorage.setItem("adminLogs", JSON.stringify([]));
         }
     }
 
@@ -90,22 +163,24 @@
         const pass = document.getElementById("adminPass").value;
         if (user === ADMIN_USER && pass === ADMIN_PASS) {
             adminLoggedIn = true;
+            addLog("Admin Login", "Admin logged into the panel.");
             renderAdminPanel();
         } else {
             document.getElementById("loginError").innerText = "Invalid admin credentials";
         }
     }
 
+    // ========== MAIN ADMIN PANEL ==========
     function renderAdminPanel() {
         const departments = JSON.parse(localStorage.getItem("departments"));
         const employees = JSON.parse(localStorage.getItem("employees"));
         const allDepts = Object.keys(departments);
 
-        // Build department & subtabs management UI
+        // Manage Departments & Sub-tabs
         let deptHtml = `<h3>📁 Manage Departments & Sub‑tabs</h3>`;
         for (let dept of allDepts) {
             let subtabs = departments[dept];
-            deptHtml += `<div class="subtab-group">
+            deptHtml += `<div class="subtab-group" id="deptGroup-${dept}">
                 <strong>${dept}</strong>
                 <div>Sub‑tabs: <span id="subtabList-${dept}">${subtabs.join(", ")}</span></div>
                 <input type="text" id="newSubtab-${dept}" placeholder="New subtab name">
@@ -113,10 +188,26 @@
                 <button onclick="removeSubtab('${dept}')">- Remove Last</button>
             </div>`;
         }
-        deptHtml += `<div><input type="text" id="newDeptName" placeholder="New department name">
-                     <button onclick="addDepartment()">➕ Add Department</button></div>`;
+        deptHtml += `<div style="margin-top:15px;">
+            <input type="text" id="newDeptName" placeholder="New department name">
+            <button onclick="addDepartment()">➕ Add Department (auto)</button>
+        </div>`;
 
-        // Employee list with permission editing
+        // Add Employee Form
+        let addEmpForm = `<div class="card"><h2>➕ Add New Employee</h2>
+            <input type="text" id="newName" placeholder="Full Name">
+            <input type="text" id="newPass" placeholder="Password">
+            <div>Select departments & sub‑tabs (Ctrl+click for multiple):</div>`;
+        for (let dept of allDepts) {
+            addEmpForm += `<div><strong>${dept}</strong>
+                <select multiple id="newPerm-${dept}" style="width:200px; height:80px;">
+                    ${departments[dept].map(sub => `<option value="${sub}">${sub}</option>`).join('')}
+                </select>
+            </div>`;
+        }
+        addEmpForm += `<button onclick="addEmployee()">Add Employee</button><div id="addMsg"></div></div>`;
+
+        // Employee List with inline permission editing
         let empRows = "";
         employees.forEach((emp, idx) => {
             let permHtml = "";
@@ -132,7 +223,7 @@
                 permHtml += `</select></div>`;
             }
             empRows += `
-                <tr>
+                <tr id="empRow-${idx}">
                     <td>${emp.name}</td>
                     <td>${Object.keys(emp.permissions).join(", ")}</td>
                     <td>
@@ -140,76 +231,75 @@
                         <button onclick="resetPassword(${idx})">Reset Password</button>
                         <button class="danger" onclick="deleteEmployee(${idx})">Delete</button>
                     </td>
-                </tr>
+                 </tr>
                 <tr id="permRow-${idx}" style="display:none;">
                     <td colspan="3">
                         <div id="permEdit-${idx}">${permHtml}</div>
                         <button onclick="savePermissions(${idx})">Save Permissions</button>
                         <button onclick="cancelEdit(${idx})">Cancel</button>
                     </td>
-                </tr>
+                 </tr>
             `;
         });
 
-        const addEmpForm = `
-            <div class="card">
-                <h2>➕ Add New Employee</h2>
-                <input type="text" id="newName" placeholder="Full Name">
-                <input type="text" id="newPass" placeholder="Password">
-                <div>Select departments & sub‑tabs (Ctrl+click for multiple):</div>
-                ${allDepts.map(dept => `
-                    <div><strong>${dept}</strong>
-                        <select multiple id="newPerm-${dept}" style="width:200px; height:80px;">
-                            ${departments[dept].map(sub => `<option value="${sub}">${sub}</option>`).join('')}
-                        </select>
-                    </div>
-                `).join('')}
-                <button onclick="addEmployee()">Add Employee</button>
-                <div id="addMsg"></div>
-            </div>
-        `;
+        // Activity Logs section
+        const logsHtml = `<div class="card">
+            <h2>📜 Activity Logs</h2>
+            <div id="logDisplayArea"></div>
+        </div>`;
 
-        document.getElementById("adminContainer").innerHTML = `
+        const finalHtml = `
             <div class="card">${deptHtml}</div>
             ${addEmpForm}
             <div class="card">
                 <h2>📋 Employee List & Permissions</h2>
-                <table>
-                    <thead><tr><th>Name</th><th>Departments (visible)</th><th>Actions</th></tr></thead>
-                    <tbody>${empRows}</tbody>
-                </table>
+                <table><thead><tr><th>Name</th><th>Departments</th><th>Actions</th></tr></thead>
+                <tbody>${empRows}</tbody></table>
             </div>
+            ${logsHtml}
         `;
+        document.getElementById("adminContainer").innerHTML = finalHtml;
+        renderLogs(); // display logs
     }
 
-    // Department & subtab management
+    // ---- Department & Subtab Management with Logging ----
+    function addDepartment() {
+        let newDept = document.getElementById("newDeptName").value.trim();
+        if (!newDept) return;
+        let departments = JSON.parse(localStorage.getItem("departments"));
+        if (departments[newDept]) {
+            alert("Department already exists!");
+            return;
+        }
+        departments[newDept] = ["General"];
+        localStorage.setItem("departments", JSON.stringify(departments));
+        addLog("Add Department", `Created department "${newDept}" with default subtab "General".`);
+        renderAdminPanel();
+        document.getElementById("newDeptName").value = "";
+    }
     function addSubtab(dept) {
         let depts = JSON.parse(localStorage.getItem("departments"));
         let newSub = document.getElementById(`newSubtab-${dept}`).value.trim();
         if (newSub && !depts[dept].includes(newSub)) {
             depts[dept].push(newSub);
             localStorage.setItem("departments", JSON.stringify(depts));
+            addLog("Add Subtab", `Added subtab "${newSub}" to department "${dept}".`);
             renderAdminPanel();
         }
     }
     function removeSubtab(dept) {
         let depts = JSON.parse(localStorage.getItem("departments"));
-        depts[dept].pop();
-        if (depts[dept].length === 0) depts[dept] = ["General"];
-        localStorage.setItem("departments", JSON.stringify(depts));
-        renderAdminPanel();
-    }
-    function addDepartment() {
-        let newDept = document.getElementById("newDeptName").value.trim();
-        if (newDept && !localStorage.getItem("departments")[newDept]) {
-            let depts = JSON.parse(localStorage.getItem("departments"));
-            depts[newDept] = ["General"];
+        if (depts[dept].length > 1) {
+            let removed = depts[dept].pop();
             localStorage.setItem("departments", JSON.stringify(depts));
+            addLog("Remove Subtab", `Removed subtab "${removed}" from department "${dept}".`);
             renderAdminPanel();
+        } else {
+            alert("At least one subtab required.");
         }
     }
 
-    // Employee management
+    // ---- Employee Management with Logging ----
     function addEmployee() {
         const name = document.getElementById("newName").value.trim();
         const pass = document.getElementById("newPass").value.trim();
@@ -233,14 +323,13 @@
         }
         employees.push({ name, password: pass, permissions });
         localStorage.setItem("employees", JSON.stringify(employees));
+        addLog("Add Employee", `Added employee "${name}" with permissions: ${JSON.stringify(permissions)}`);
         document.getElementById("addMsg").innerHTML = '<span class="success">Added successfully</span>';
         renderAdminPanel();
     }
-
     function editPermissions(idx) {
         let row = document.getElementById(`permRow-${idx}`);
-        if (row.style.display === "none") row.style.display = "table-row";
-        else row.style.display = "none";
+        row.style.display = row.style.display === "none" ? "table-row" : "none";
     }
     function cancelEdit(idx) {
         document.getElementById(`permRow-${idx}`).style.display = "none";
@@ -259,14 +348,17 @@
         }
         emp.permissions = newPerms;
         localStorage.setItem("employees", JSON.stringify(employees));
+        addLog("Edit Permissions", `Updated permissions for "${emp.name}": ${JSON.stringify(newPerms)}`);
         renderAdminPanel();
     }
     function resetPassword(idx) {
         let newPass = prompt("Enter new password:");
         if (newPass && newPass.trim()) {
             let employees = JSON.parse(localStorage.getItem("employees"));
+            let empName = employees[idx].name;
             employees[idx].password = newPass.trim();
             localStorage.setItem("employees", JSON.stringify(employees));
+            addLog("Reset Password", `Reset password for employee "${empName}".`);
             alert("Password reset");
             renderAdminPanel();
         }
@@ -274,8 +366,10 @@
     function deleteEmployee(idx) {
         if (confirm("Delete employee?")) {
             let employees = JSON.parse(localStorage.getItem("employees"));
+            let empName = employees[idx].name;
             employees.splice(idx, 1);
             localStorage.setItem("employees", JSON.stringify(employees));
+            addLog("Delete Employee", `Deleted employee "${empName}".`);
             renderAdminPanel();
         }
     }
